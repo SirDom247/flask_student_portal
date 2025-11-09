@@ -55,25 +55,7 @@ It also computes and tracks each student’s **semester CGPA** automatically.
 
 ## 📂 Project Structure
 
-student_portal/
-├── app.py
-├── config.py
-├── models.py
-├── utils.py
-├── requirements.txt
-├── migrations/
-│
-├── static/
-│ ├── uploads/
-│ └── css/
-│
-└── templates/
-├── base.html
-├── login.html
-├── register.html
-├── dashboard_student.html
-├── dashboard_officer.html
-
+![Project Structure](project_structure.png)
 
 
 ## 🧠 Installation & Setup
@@ -169,3 +151,4 @@ Cybersecurity Researcher & Software Engineer
 📧 dominicudousoro@gmail.com
 🌐 www.rigeltechkonsuktz.com
 💼 www.github.com/SirDom247
+💼 www.linkedin.com/in/dominic-udousoro-88245576
