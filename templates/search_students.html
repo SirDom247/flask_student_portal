@@ -1,0 +1,415 @@
+{% extends "base.html" %}
+{% block title %}Search Students - PDE Portal{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-gray-900 to-black py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <!-- Header Section -->
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-white mb-2">Student Search</h1>
+            <p class="text-gray-400 text-lg">Find and manage student records</p>
+        </div>
+
+        <!-- Search Filters Card -->
+        <div class="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-6 border border-gray-700 mb-8">
+            <h2 class="text-2xl font-bold text-white mb-6 flex items-center">
+                <i class="fas fa-search text-green-400 mr-3"></i>
+                Search Filters
+            </h2>
+
+            <!-- Real-time Search Input -->
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-300 mb-2">
+                    <i class="fas fa-search mr-2 text-green-400"></i>Quick Search
+                </label>
+                <input type="text" id="quickSearch" 
+                       class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-300"
+                       placeholder="Type to search students in real-time...">
+            </div>
+
+            <form method="GET" class="space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Search Query (for server-side) -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">
+                            <i class="fas fa-database mr-2 text-blue-400"></i>Server Search
+                        </label>
+                        <input type="text" name="q" value="{{ search_query }}" 
+                               class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
+                               placeholder="Search from database...">
+                    </div>
+
+                    <!-- Department Filter -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">
+                            <i class="fas fa-building mr-2 text-purple-400"></i>Department
+                        </label>
+                        <input type="text" name="department" value="{{ department_filter }}" 
+                               class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300"
+                               placeholder="Filter by department...">
+                    </div>
+                </div>
+
+                <!-- Status Filter -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-3">
+                        <i class="fas fa-filter mr-2 text-yellow-400"></i>Student Status
+                    </label>
+                    <div class="flex flex-wrap gap-4">
+                        <label class="flex items-center space-x-2">
+                            <input type="radio" name="status" value="" 
+                                   {% if not status_filter %}checked{% endif %}
+                                   class="rounded bg-gray-700 border-gray-600 text-green-500 focus:ring-green-500">
+                            <span class="text-gray-300">All Students</span>
+                        </label>
+                        <label class="flex items-center space-x-2">
+                            <input type="radio" name="status" value="with_results" 
+                                   {% if status_filter == 'with_results' %}checked{% endif %}
+                                   class="rounded bg-gray-700 border-gray-600 text-green-500 focus:ring-green-500">
+                            <span class="text-gray-300">With Results</span>
+                        </label>
+                        <label class="flex items-center space-x-2">
+                            <input type="radio" name="status" value="without_results" 
+                                   {% if status_filter == 'without_results' %}checked{% endif %}
+                                   class="rounded bg-gray-700 border-gray-600 text-green-500 focus:ring-green-500">
+                            <span class="text-gray-300">Without Results</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex flex-col sm:flex-row gap-4 pt-4">
+                    <button type="submit" 
+                            class="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 rounded-xl font-semibold hover:shadow-2xl transition-all duration-300 hover:scale-105 transform">
+                        <i class="fas fa-database mr-2"></i>Search Database
+                    </button>
+                    <a href="{{ url_for('search_students') }}" 
+                       class="px-6 py-3 border-2 border-gray-600 text-white rounded-xl font-semibold transition-all duration-300 hover:border-gray-500 hover:bg-gray-700 text-center">
+                        <i class="fas fa-redo mr-2"></i>Reset
+                    </a>
+                </div>
+            </form>
+        </div>
+
+        <!-- Results Section -->
+        <div class="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-6 border border-gray-700">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-2xl font-bold text-white flex items-center">
+                    <i class="fas fa-users text-green-400 mr-3"></i>
+                    Search Results
+                </h2>
+                <div class="flex items-center space-x-4">
+                    <span id="filteredCount" class="bg-green-500 bg-opacity-20 text-green-400 px-3 py-1 rounded-full text-sm font-medium">
+                        {{ students|length }} students
+                    </span>
+                    <span id="visibleCount" class="bg-blue-500 bg-opacity-20 text-blue-400 px-3 py-1 rounded-full text-sm font-medium hidden">
+                        0 visible
+                    </span>
+                </div>
+            </div>
+
+            {% if students %}
+            <div class="overflow-x-auto">
+                <table class="w-full text-white" id="studentsTable">
+                    <thead>
+                        <tr class="border-b border-gray-700">
+                            <th class="py-4 px-4 text-left font-semibold text-gray-300 cursor-pointer sortable" data-sort="matric_no">
+                                Matric No <i class="fas fa-sort ml-1 text-gray-500"></i>
+                            </th>
+                            <th class="py-4 px-4 text-left font-semibold text-gray-300 cursor-pointer sortable" data-sort="full_name">
+                                Full Name <i class="fas fa-sort ml-1 text-gray-500"></i>
+                            </th>
+                            <th class="py-4 px-4 text-left font-semibold text-gray-300 cursor-pointer sortable" data-sort="username">
+                                Username <i class="fas fa-sort ml-1 text-gray-500"></i>
+                            </th>
+                            <th class="py-4 px-4 text-left font-semibold text-gray-300 cursor-pointer sortable" data-sort="email">
+                                Email <i class="fas fa-sort ml-1 text-gray-500"></i>
+                            </th>
+                            <th class="py-4 px-4 text-left font-semibold text-gray-300 cursor-pointer sortable" data-sort="results">
+                                Results <i class="fas fa-sort ml-1 text-gray-500"></i>
+                            </th>
+                            <th class="py-4 px-4 text-left font-semibold text-gray-300">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="studentsTableBody">
+                        {% for student in students %}
+                        <tr class="border-b border-gray-700 hover:bg-gray-750 transition-colors duration-200 student-row" 
+                            data-matric_no="{{ student.matric_no }}"
+                            data-full_name="{{ student.full_name }}"
+                            data-username="{{ student.username }}"
+                            data-email="{{ student.email }}"
+                            data-results="{{ student.results|length if student.results else 0 }}">
+                            <td class="py-4 px-4">
+                                <div class="flex items-center">
+                                    <div class="w-8 h-8 bg-green-500 bg-opacity-20 rounded-lg flex items-center justify-center mr-3">
+                                        <i class="fas fa-id-card text-green-400 text-sm"></i>
+                                    </div>
+                                    <span class="font-mono text-green-300 matric-no">{{ student.matric_no }}</span>
+                                </div>
+                            </td>
+                            <td class="py-4 px-4 full-name">{{ student.full_name }}</td>
+                            <td class="py-4 px-4 username">{{ student.username }}</td>
+                            <td class="py-4 px-4 email">
+                                <div class="text-sm text-gray-300">{{ student.email }}</div>
+                            </td>
+                            <td class="py-4 px-4 results-count">
+                                {% set result_count = student.results|length if student.results else 0 %}
+                                <span class="px-3 py-1 rounded-full text-sm font-medium {% if result_count > 0 %}bg-green-500 bg-opacity-20 text-green-400{% else %}bg-yellow-500 bg-opacity-20 text-yellow-400{% endif %}">
+                                    {{ result_count }} results
+                                </span>
+                            </td>
+                            <td class="py-4 px-4">
+                                <div class="flex space-x-2">
+                                    <a href="{{ url_for('edit_student', student_id=student.id) }}" 
+                                       class="bg-yellow-500 bg-opacity-20 text-yellow-400 px-3 py-2 rounded-lg hover:bg-yellow-500 hover:bg-opacity-30 transition-all duration-300 flex items-center">
+                                        <i class="fas fa-edit mr-2"></i>Edit
+                                    </a>
+                                    <a href="{{ url_for('search_results') }}?matric_no={{ student.matric_no }}" 
+                                       class="bg-blue-500 bg-opacity-20 text-blue-400 px-3 py-2 rounded-lg hover:bg-blue-500 hover:bg-opacity-30 transition-all duration-300 flex items-center">
+                                        <i class="fas fa-chart-bar mr-2"></i>Results
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Export Options -->
+            <div class="mt-6 pt-6 border-t border-gray-700">
+                <div class="flex flex-col sm:flex-row gap-4 justify-between items-center">
+                    <p class="text-gray-400 text-sm">
+                        <span id="totalCount">{{ students|length }}</span> total students • 
+                        <span id="displayCount">{{ students|length }}</span> currently displayed
+                        {% if search_query %}• Server filter: "{{ search_query }}"{% endif %}
+                    </p>
+                    <div class="flex gap-3">
+                        <button onclick="printStudents()" 
+                                class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-all duration-300 flex items-center">
+                            <i class="fas fa-print mr-2"></i>Print
+                        </button>
+                        
+                        <!-- Client-side Export Button -->
+                        <button onclick="exportFilteredStudents()" 
+                                class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-all duration-300 flex items-center">
+                            <i class="fas fa-file-export mr-2"></i>Export Visible
+                        </button>
+
+                        <!-- Server-side Export (optional) -->
+                        <a href="{{ url_for('export_students') }}?q={{ search_query }}&department={{ department_filter }}&status={{ status_filter }}" 
+                           class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-all duration-300 flex items-center">
+                            <i class="fas fa-database mr-2"></i>Export All
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            {% else %}
+            <!-- No Results State -->
+            <div class="text-center py-12">
+                <div class="w-24 h-24 bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-users text-gray-500 text-3xl"></i>
+                </div>
+                <h3 class="text-xl font-semibold text-gray-400 mb-2">No Students Found</h3>
+                <p class="text-gray-500 mb-6">
+                    {% if search_query or department_filter or status_filter %}
+                    No students match your search criteria. Try adjusting your filters.
+                    {% else %}
+                    No students are currently registered in the system.
+                    {% endif %}
+                </p>
+                <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                    <a href="{{ url_for('search_students') }}" 
+                       class="bg-gray-700 hover:bg-gray-600 text-white px-6 py-3 rounded-xl transition-all duration-300">
+                        <i class="fas fa-redo mr-2"></i>Clear Filters
+                    </a>
+                    <a href="{{ url_for('dashboard_officer') }}" 
+                       class="bg-gradient-to-r from-green-600 to-emerald-700 text-white px-6 py-3 rounded-xl hover:shadow-2xl transition-all duration-300">
+                        <i class="fas fa-tachometer-alt mr-2"></i>Back to Dashboard
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.hover\:bg-gray-750:hover {
+    background-color: rgba(55, 65, 81, 0.5);
+}
+
+.sortable:hover {
+    background-color: rgba(55, 65, 81, 0.3);
+}
+
+.hidden {
+    display: none !important;
+}
+
+.student-row.hidden {
+    display: none;
+}
+
+@media print {
+    .no-print {
+        display: none !important;
+    }
+}
+</style>
+
+<script>
+// Real-time search functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const quickSearch = document.getElementById('quickSearch');
+    const studentRows = document.querySelectorAll('.student-row');
+    const visibleCount = document.getElementById('visibleCount');
+    const displayCount = document.getElementById('displayCount');
+    const totalCount = document.getElementById('totalCount');
+    
+    // Initialize counts
+    updateCounts();
+    
+    // Real-time search
+    if (quickSearch) {
+        quickSearch.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase().trim();
+            
+            studentRows.forEach(row => {
+                const matricNo = row.getAttribute('data-matric_no').toLowerCase();
+                const fullName = row.getAttribute('data-full_name').toLowerCase();
+                const username = row.getAttribute('data-username').toLowerCase();
+                const email = row.getAttribute('data-email').toLowerCase();
+                
+                const matches = matricNo.includes(searchTerm) || 
+                               fullName.includes(searchTerm) || 
+                               username.includes(searchTerm) || 
+                               email.includes(searchTerm);
+                
+                if (matches || searchTerm === '') {
+                    row.classList.remove('hidden');
+                } else {
+                    row.classList.add('hidden');
+                }
+            });
+            
+            updateCounts();
+        });
+    }
+    
+    // Table sorting
+    const sortableHeaders = document.querySelectorAll('.sortable');
+    let currentSort = { column: null, direction: 'asc' };
+    
+    sortableHeaders.forEach(header => {
+        header.addEventListener('click', function() {
+            const column = this.getAttribute('data-sort');
+            sortTable(column);
+        });
+    });
+    
+    function sortTable(column) {
+        const rows = Array.from(studentRows);
+        const direction = currentSort.column === column && currentSort.direction === 'asc' ? 'desc' : 'asc';
+        
+        rows.sort((a, b) => {
+            let aValue, bValue;
+            
+            if (column === 'results') {
+                aValue = parseInt(a.getAttribute('data-results'));
+                bValue = parseInt(b.getAttribute('data-results'));
+            } else {
+                aValue = a.getAttribute(`data-${column}`).toLowerCase();
+                bValue = b.getAttribute(`data-${column}`).toLowerCase();
+            }
+            
+            if (aValue < bValue) return direction === 'asc' ? -1 : 1;
+            if (aValue > bValue) return direction === 'asc' ? 1 : -1;
+            return 0;
+        });
+        
+        // Update table
+        const tbody = document.getElementById('studentsTableBody');
+        tbody.innerHTML = '';
+        rows.forEach(row => tbody.appendChild(row));
+        
+        // Update sort indicators
+        sortableHeaders.forEach(header => {
+            const icon = header.querySelector('i');
+            if (header.getAttribute('data-sort') === column) {
+                icon.className = direction === 'asc' ? 'fas fa-sort-up ml-1 text-green-400' : 'fas fa-sort-down ml-1 text-green-400';
+            } else {
+                icon.className = 'fas fa-sort ml-1 text-gray-500';
+            }
+        });
+        
+        currentSort = { column, direction };
+    }
+    
+    function updateCounts() {
+        const visibleRows = document.querySelectorAll('.student-row:not(.hidden)');
+        const visibleCountNum = visibleRows.length;
+        const totalCountNum = studentRows.length;
+        
+        if (visibleCount) {
+            visibleCount.textContent = `${visibleCountNum} visible`;
+            visibleCount.classList.toggle('hidden', visibleCountNum === totalCountNum);
+        }
+        
+        if (displayCount) {
+            displayCount.textContent = visibleCountNum;
+        }
+        
+        if (totalCount) {
+            totalCount.textContent = totalCountNum;
+        }
+    }
+});
+
+// Export only visible (filtered) students
+function exportFilteredStudents() {
+    const visibleRows = document.querySelectorAll('.student-row:not(.hidden)');
+    
+    if (visibleRows.length === 0) {
+        alert('No students to export!');
+        return;
+    }
+    
+    let csvContent = "data:text/csv;charset=utf-8,";
+    csvContent += "Matric No,Full Name,Username,Email,Results Count\n";
+    
+    visibleRows.forEach(row => {
+        const matricNo = row.getAttribute('data-matric_no');
+        const fullName = row.getAttribute('data-full_name');
+        const username = row.getAttribute('data-username');
+        const email = row.getAttribute('data-email');
+        const resultsCount = row.getAttribute('data-results');
+        
+        const rowData = [
+            matricNo,
+            fullName,
+            username,
+            email,
+            resultsCount
+        ].map(field => `"${field}"`).join(',');
+        
+        csvContent += rowData + "\n";
+    });
+    
+    // Create download link
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `students_export_${new Date().toISOString().slice(0,10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+function printStudents() {
+    window.print();
+}
+</script>
+{% endblock %}
