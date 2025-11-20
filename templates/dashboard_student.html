@@ -1,0 +1,554 @@
+{% extends "base.html" %}
+{% block title %}Student Dashboard - PDE Portal{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-gray-900 to-black py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <!-- Header Section -->
+        <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-8">
+            <div class="text-center lg:text-left mb-6 lg:mb-0">
+                <h1 class="text-4xl font-bold text-white mb-2">Student Dashboard</h1>
+                <p class="text-gray-400 text-lg">Welcome back, {{ current_user.full_name }} 👋</p>
+            </div>
+            <div class="bg-gradient-to-r from-green-600 to-emerald-700 text-white px-6 py-3 rounded-xl font-semibold">
+                <i class="fas fa-id-card mr-2"></i>Matric: {{ current_user.matric_no }}
+            </div>
+        </div>
+
+        <!-- Profile and Stats Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
+            <!-- Profile Card -->
+            <div class="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-6 border border-gray-700 lg:col-span-1">
+                <div class="text-center">
+                    <!-- Profile Photo -->
+                    <div class="relative inline-block mb-4">
+                        <div id="profilePhoto" class="w-24 h-24 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full flex items-center justify-center mx-auto border-4 border-gray-700 overflow-hidden">
+                            {% if current_user.profile_picture %}
+                                <img src="{{ current_user.profile_picture }}" alt="Profile" class="w-full h-full object-cover">
+                            {% else %}
+                                <i class="fas fa-user-graduate text-white text-2xl"></i>
+                            {% endif %}
+                        </div>
+                        <!-- Photo Upload Button -->
+                        <button onclick="openPhotoUpload()" 
+                                class="absolute bottom-0 right-0 bg-green-500 text-white p-2 rounded-full hover:bg-green-600 transition-all duration-300 transform hover:scale-110">
+                            <i class="fas fa-camera text-sm"></i>
+                        </button>
+                    </div>
+                    
+                    <h3 class="text-xl font-bold text-white mb-2">{{ current_user.full_name }}</h3>
+                    <p class="text-gray-400 text-sm mb-4">{{ current_user.matric_no }}</p>
+                    
+                    <div class="space-y-2 text-left">
+                        <div class="flex items-center text-gray-300 text-sm">
+                            <i class="fas fa-envelope mr-3 text-green-400 w-4"></i>
+                            <span class="truncate">{{ current_user.email }}</span>
+                        </div>
+                        <div class="flex items-center text-gray-300 text-sm">
+                            <i class="fas fa-user mr-3 text-blue-400 w-4"></i>
+                            <span>{{ current_user.username }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 lg:col-span-3">
+                <!-- CGPA Card -->
+                <div class="bg-gradient-to-br from-green-900 to-emerald-800 rounded-2xl p-6 border border-green-700">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-green-200 text-sm">Current CGPA</p>
+                            <p class="text-4xl font-bold text-white">
+                                {% if results and results[0].semester_cgpa %}
+                                    {{ "%.2f"|format(results[0].semester_cgpa) }}
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="w-12 h-12 bg-green-500 bg-opacity-30 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-star text-green-300 text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Courses Card -->
+                <div class="bg-gradient-to-br from-blue-900 to-blue-800 rounded-2xl p-6 border border-blue-700">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-blue-200 text-sm">Courses Taken</p>
+                            <p class="text-4xl font-bold text-white">{{ results|length if results else 0 }}</p>
+                        </div>
+                        <div class="w-12 h-12 bg-blue-500 bg-opacity-30 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-book text-blue-300 text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Performance Card -->
+                <div class="bg-gradient-to-br from-purple-900 to-purple-800 rounded-2xl p-6 border border-purple-700">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-purple-200 text-sm">Average Score</p>
+                            <p class="text-4xl font-bold text-white">
+                                {% if results %}
+                                    {{ "%.1f"|format(results|map(attribute='score')|sum / results|length) }}%
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="w-12 h-12 bg-purple-500 bg-opacity-30 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-chart-line text-purple-300 text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex flex-col sm:flex-row gap-4 mb-8">
+            <button onclick="downloadResultsPDF()" 
+                    class="bg-gradient-to-r from-green-600 to-emerald-700 text-white px-6 py-3 rounded-xl font-semibold hover:shadow-2xl transition-all duration-300 hover:scale-105 transform flex items-center justify-center">
+                <i class="fas fa-file-pdf mr-2"></i>Download Results PDF
+            </button>
+            <button onclick="printResults()" 
+                    class="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-3 rounded-xl font-semibold hover:shadow-2xl transition-all duration-300 hover:scale-105 transform flex items-center justify-center">
+                <i class="fas fa-print mr-2"></i>Print Results
+            </button>
+            <button onclick="shareResults()" 
+                    class="bg-gradient-to-r from-purple-600 to-purple-700 text-white px-6 py-3 rounded-xl font-semibold hover:shadow-2xl transition-all duration-300 hover:scale-105 transform flex items-center justify-center">
+                <i class="fas fa-share-alt mr-2"></i>Share Results
+            </button>
+        </div>
+
+        <!-- Main Content Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Results Table -->
+            <div class="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl border border-gray-700 lg:col-span-2">
+                <div class="p-6 border-b border-gray-700">
+                    <h2 class="text-2xl font-bold text-white flex items-center">
+                        <i class="fas fa-chart-bar text-green-400 mr-3"></i>
+                        Academic Results
+                    </h2>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-white">
+                        <thead>
+                            <tr class="border-b border-gray-700">
+                                <th class="py-4 px-4 text-left font-semibold text-gray-300">Course</th>
+                                <th class="py-4 px-4 text-left font-semibold text-gray-300">Title</th>
+                                <th class="py-4 px-4 text-left font-semibold text-gray-300">Credits</th>
+                                <th class="py-4 px-4 text-left font-semibold text-gray-300">Score</th>
+                                <th class="py-4 px-4 text-left font-semibold text-gray-300">Grade</th>
+                                <th class="py-4 px-4 text-left font-semibold text-gray-300">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if results %}
+                                {% for r in results %}
+                                <tr class="border-b border-gray-700 hover:bg-gray-750 transition-colors duration-200">
+                                    <td class="py-4 px-4">
+                                        <div class="font-mono text-green-300">{{ r.course_code }}</div>
+                                    </td>
+                                    <td class="py-4 px-4">
+                                        <div class="text-sm text-gray-300">{{ r.course_title }}</div>
+                                    </td>
+                                    <td class="py-4 px-4">
+                                        <span class="px-2 py-1 bg-blue-500 bg-opacity-20 text-blue-400 rounded text-sm font-medium">
+                                            {{ r.credit_unit }}
+                                        </span>
+                                    </td>
+                                    <td class="py-4 px-4">
+                                        <span class="px-3 py-1 rounded-full text-sm font-medium {% if r.score >= 50 %}bg-green-500 bg-opacity-20 text-green-400{% else %}bg-red-500 bg-opacity-20 text-red-400{% endif %}">
+                                            {{ r.score }}
+                                        </span>
+                                    </td>
+                                    <td class="py-4 px-4">
+                                        <span class="px-3 py-1 rounded-full text-sm font-medium {% if r.grade in ['A','B','C'] %}bg-green-500 bg-opacity-20 text-green-400{% else %}bg-red-500 bg-opacity-20 text-red-400{% endif %}">
+                                            {{ r.grade }}
+                                        </span>
+                                    </td>
+                                    <td class="py-4 px-4">
+                                        <span class="px-2 py-1 rounded text-xs font-medium {% if r.remark == 'Excellent' %}bg-green-500 bg-opacity-20 text-green-400{% elif r.remark == 'Fail' %}bg-red-500 bg-opacity-20 text-red-400{% else %}bg-yellow-500 bg-opacity-20 text-yellow-400{% endif %}">
+                                            {{ r.remark }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="6" class="py-8 text-center text-gray-400">
+                                        <i class="fas fa-inbox text-3xl mb-2 opacity-50"></i>
+                                        <p>No results available yet.</p>
+                                    </td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Charts and Analytics Sidebar -->
+            <div class="space-y-6">
+                <!-- Grade Distribution Chart -->
+                {% if results %}
+                <div class="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-6 border border-gray-700">
+                    <h3 class="text-xl font-bold text-white mb-4 flex items-center">
+                        <i class="fas fa-chart-pie text-blue-400 mr-3"></i>
+                        Grade Distribution
+                    </h3>
+                    <div class="h-64">
+                        <canvas id="gradeChart"></canvas>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Performance Summary -->
+                <div class="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-6 border border-gray-700">
+                    <h3 class="text-xl font-bold text-white mb-4 flex items-center">
+                        <i class="fas fa-tachometer-alt text-green-400 mr-3"></i>
+                        Performance Summary
+                    </h3>
+                    <div class="space-y-4">
+                        {% if results %}
+                            {% set passed = results|selectattr('score', '>=', 50)|list|length %}
+                            {% set total = results|length %}
+                            {% set pass_rate = (passed / total * 100)|round(1) if total > 0 else 0 %}
+                            
+                            <div>
+                                <div class="flex justify-between mb-2">
+                                    <span class="text-gray-300">Overall Pass Rate</span>
+                                    <span class="text-green-400 font-bold">{{ pass_rate }}%</span>
+                                </div>
+                                <div class="w-full bg-gray-700 rounded-full h-2">
+                                    <div class="bg-green-500 h-2 rounded-full" style="width: {{ pass_rate }}%"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="grid grid-cols-2 gap-4 text-center">
+                                <div>
+                                    <div class="text-2xl font-bold text-green-400">{{ passed }}</div>
+                                    <div class="text-gray-400 text-sm">Passed</div>
+                                </div>
+                                <div>
+                                    <div class="text-2xl font-bold text-red-400">{{ total - passed }}</div>
+                                    <div class="text-gray-400 text-sm">Need Improvement</div>
+                                </div>
+                            </div>
+                        {% else %}
+                            <div class="text-center text-gray-400 py-4">
+                                <i class="fas fa-chart-bar text-2xl mb-2 opacity-50"></i>
+                                <p>No performance data available</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-6 border border-gray-700">
+                    <h3 class="text-xl font-bold text-white mb-4 flex items-center">
+                        <i class="fas fa-bolt text-yellow-400 mr-3"></i>
+                        Quick Actions
+                    </h3>
+                    <div class="space-y-3">
+                        <button onclick="viewAcademicCalendar()" 
+                                class="w-full text-left p-3 bg-gray-700 hover:bg-gray-600 rounded-lg transition-all duration-300 flex items-center justify-between group">
+                            <span class="flex items-center">
+                                <i class="fas fa-calendar-alt text-blue-400 mr-3"></i>
+                                Academic Calendar
+                            </span>
+                            <i class="fas fa-chevron-right text-gray-400 group-hover:text-blue-400 transition-colors"></i>
+                        </button>
+                        
+                        <button onclick="viewCourseMaterials()" 
+                                class="w-full text-left p-3 bg-gray-700 hover:bg-gray-600 rounded-lg transition-all duration-300 flex items-center justify-between group">
+                            <span class="flex items-center">
+                                <i class="fas fa-book text-green-400 mr-3"></i>
+                                Course Materials
+                            </span>
+                            <i class="fas fa-chevron-right text-gray-400 group-hover:text-green-400 transition-colors"></i>
+                        </button>
+                        
+                        <button onclick="contactAdvisor()" 
+                                class="w-full text-left p-3 bg-gray-700 hover:bg-gray-600 rounded-lg transition-all duration-300 flex items-center justify-between group">
+                            <span class="flex items-center">
+                                <i class="fas fa-user-tie text-purple-400 mr-3"></i>
+                                Contact Advisor
+                            </span>
+                            <i class="fas fa-chevron-right text-gray-400 group-hover:text-purple-400 transition-colors"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Photo Upload Modal -->
+<div id="photoUploadModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-6 border border-gray-700 w-full max-w-md mx-4">
+        <h3 class="text-xl font-bold text-white mb-4">Update Profile Photo</h3>
+        <form id="photoUploadForm" enctype="multipart/form-data">
+            <input type="file" id="photoInput" accept="image/*" class="hidden">
+            <div class="border-2 border-dashed border-gray-600 rounded-xl p-8 text-center mb-4 cursor-pointer" 
+                 onclick="document.getElementById('photoInput').click()">
+                <i class="fas fa-cloud-upload-alt text-gray-400 text-3xl mb-2"></i>
+                <p class="text-gray-400">Click to upload photo</p>
+                <p class="text-gray-500 text-sm">JPG, PNG (Max 2MB)</p>
+            </div>
+            <div class="flex gap-3">
+                <button type="button" onclick="closePhotoUpload()" 
+                        class="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-3 rounded-xl transition-all duration-300">
+                    Cancel
+                </button>
+                <button type="button" onclick="uploadPhoto()" 
+                        class="flex-1 bg-gradient-to-r from-green-600 to-emerald-700 text-white py-3 rounded-xl hover:shadow-xl transition-all duration-300">
+                    Upload
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Include Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- Include jsPDF for PDF generation -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<style>
+.hover\:bg-gray-750:hover {
+    background-color: rgba(55, 65, 81, 0.5);
+}
+
+#profilePhoto {
+    background: linear-gradient(135deg, #10b981, #059669);
+}
+</style>
+
+<script>
+// Initialize charts
+document.addEventListener('DOMContentLoaded', function() {
+    {% if results %}
+    initializeGradeChart();
+    {% endif %}
+});
+
+function initializeGradeChart() {
+    const gradeLabels = [{% for r in results %}'{{ r.grade }}',{% endfor %}];
+    const gradeCounts = {};
+    gradeLabels.forEach(function(g){
+        gradeCounts[g] = (gradeCounts[g] || 0) + 1;
+    });
+    
+    const labels = Object.keys(gradeCounts);
+    const data = Object.values(gradeCounts);
+    
+    const ctx = document.getElementById('gradeChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: data,
+                backgroundColor: [
+                    '#10b981', '#34d399', '#6ee7b7', '#fbbf24', '#ef4444'
+                ],
+                borderWidth: 2,
+                borderColor: '#1f2937'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        color: '#d1d5db',
+                        font: {
+                            size: 12
+                        }
+                    }
+                }
+            },
+            cutout: '60%'
+        }
+    });
+}
+
+// Photo Upload Functions
+function openPhotoUpload() {
+    document.getElementById('photoUploadModal').classList.remove('hidden');
+}
+
+function closePhotoUpload() {
+    document.getElementById('photoUploadModal').classList.add('hidden');
+}
+
+function uploadPhoto() {
+    const fileInput = document.getElementById('photoInput');
+    if (fileInput.files.length > 0) {
+        // Simulate upload - in real app, you'd send to server
+        const file = fileInput.files[0];
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+            const profilePhoto = document.getElementById('profilePhoto');
+            profilePhoto.innerHTML = `<img src="${e.target.result}" alt="Profile" class="w-full h-full object-cover rounded-full">`;
+            closePhotoUpload();
+            
+            // Show success message
+            showNotification('Profile photo updated successfully!', 'success');
+        };
+        
+        reader.readAsDataURL(file);
+    } else {
+        showNotification('Please select a photo to upload.', 'error');
+    }
+}
+
+// PDF Generation
+async function downloadResultsPDF() {
+    showNotification('Generating PDF...', 'info');
+    
+    try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        // Add content to PDF
+        doc.setFillColor(16, 185, 129);
+        doc.rect(0, 0, 210, 40, 'F');
+        
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(20);
+        doc.text('Fderal College of Education (Technical) Omoku', 105, 15, { align: 'center' });
+        doc.text('Professional Diploma in Education', 105, 25, { align: 'center' });
+        doc.text('Academic Transcript', 105, 35, { align: 'center' });
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(12);
+        doc.text(`Student: ${'{{ current_user.full_name }}'}`, 20, 60);
+        doc.text(`Matric No: ${'{{ current_user.matric_no }}'}`, 20, 70);
+        doc.text(`CGPA: ${'{% if results and results[0].semester_cgpa %}{{ "%.2f"|format(results[0].semester_cgpa) }}{% else %}N/A{% endif %}'}`, 20, 80);
+        
+        // Add results table
+        let yPosition = 100;
+        doc.text('Course Code', 20, yPosition);
+        doc.text('Course Title', 50, yPosition);
+        doc.text('Score', 140, yPosition);
+        doc.text('Grade', 160, yPosition);
+        doc.text('Status', 180, yPosition);
+        
+        yPosition += 10;
+        doc.line(20, yPosition, 190, yPosition);
+        
+        {% if results %}
+            {% for r in results %}
+            yPosition += 10;
+            doc.text('{{ r.course_code }}', 20, yPosition);
+            doc.text('{{ r.course_title[:25] }}{% if r.course_title|length > 25 %}...{% endif %}', 50, yPosition);
+            doc.text('{{ r.score }}', 140, yPosition);
+            doc.text('{{ r.grade }}', 160, yPosition);
+            doc.text('{{ r.remark }}', 180, yPosition);
+            {% endfor %}
+        {% endif %}
+        
+        // Save PDF
+        doc.save(`{{ current_user.matric_no }}_transcript.pdf`);
+        showNotification('PDF downloaded successfully!', 'success');
+        
+    } catch (error) {
+        console.error('PDF generation failed:', error);
+        showNotification('Failed to generate PDF. Please try again.', 'error');
+    }
+}
+
+function printResults() {
+    window.print();
+}
+
+function shareResults() {
+    if (navigator.share) {
+        navigator.share({
+            title: 'My Academic Results',
+            text: `Check out my academic results for this semester. CGPA: {% if results and results[0].semester_cgpa %}{{ "%.2f"|format(results[0].semester_cgpa) }}{% else %}N/A{% endif %}`,
+            url: window.location.href
+        });
+    } else {
+        showNotification('Web Share API not supported in your browser', 'info');
+    }
+}
+
+// Utility functions
+function showNotification(message, type = 'info') {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 px-6 py-3 rounded-xl shadow-lg z-50 transform transition-all duration-300 ${
+        type === 'success' ? 'bg-green-600 text-white' :
+        type === 'error' ? 'bg-red-600 text-white' :
+        'bg-blue-600 text-white'
+    }`;
+    notification.innerHTML = `
+        <div class="flex items-center">
+            <i class="fas fa-${type === 'success' ? 'check' : type === 'error' ? 'exclamation-triangle' : 'info'} mr-3"></i>
+            <span>${message}</span>
+        </div>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Remove after 3 seconds
+    setTimeout(() => {
+        notification.remove();
+    }, 3000);
+}
+
+// Quick action handlers
+function viewAcademicCalendar() {
+    showNotification('Academic calendar feature coming soon!', 'info');
+}
+
+function viewCourseMaterials() {
+    showNotification('Course materials feature coming soon!', 'info');
+}
+
+function contactAdvisor() {
+    showNotification('Contact advisor feature coming soon!', 'info');
+}
+
+// Auto-refresh data every 5 minutes
+setInterval(() => {
+    console.log('Auto-refreshing student dashboard...');
+    window.location.reload();
+}, 300000);
+</script>
+
+<style>
+@media print {
+    .no-print {
+        display: none !important;
+    }
+    
+    body {
+        background: white !important;
+        color: black !important;
+    }
+    
+    .bg-gradient-to-br {
+        background: white !important;
+        border: 1px solid #ddd !important;
+    }
+    
+    .text-white {
+        color: black !important;
+    }
+    
+    .text-gray-400 {
+        color: #666 !important;
+    }
+}
+</style>
+{% endblock %}
