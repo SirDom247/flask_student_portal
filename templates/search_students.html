@@ -29,6 +29,7 @@
             </div>
 
             <form method="GET" class="space-y-6">
+                <!-- First Row of Filters -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <!-- Search Query (for server-side) -->
                     <div>
@@ -37,7 +38,7 @@
                         </label>
                         <input type="text" name="q" value="{{ search_query }}" 
                                class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
-                               placeholder="Search from database...">
+                               placeholder="Search by name, matric no, email...">
                     </div>
 
                     <!-- Department Filter -->
@@ -51,30 +52,28 @@
                     </div>
                 </div>
 
-                <!-- Status Filter -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-300 mb-3">
-                        <i class="fas fa-filter mr-2 text-yellow-400"></i>Student Status
-                    </label>
-                    <div class="flex flex-wrap gap-4">
-                        <label class="flex items-center space-x-2">
-                            <input type="radio" name="status" value="" 
-                                   {% if not status_filter %}checked{% endif %}
-                                   class="rounded bg-gray-700 border-gray-600 text-green-500 focus:ring-green-500">
-                            <span class="text-gray-300">All Students</span>
+                <!-- Second Row of Filters -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- School Filter -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">
+                            <i class="fas fa-university mr-2 text-indigo-400"></i>School
                         </label>
-                        <label class="flex items-center space-x-2">
-                            <input type="radio" name="status" value="with_results" 
-                                   {% if status_filter == 'with_results' %}checked{% endif %}
-                                   class="rounded bg-gray-700 border-gray-600 text-green-500 focus:ring-green-500">
-                            <span class="text-gray-300">With Results</span>
+                        <input type="text" name="school" value="{{ school_filter }}" 
+                               class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-300"
+                               placeholder="Filter by school...">
+                    </div>
+
+                    <!-- Status Filter -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">
+                            <i class="fas fa-filter mr-2 text-orange-400"></i>Status
                         </label>
-                        <label class="flex items-center space-x-2">
-                            <input type="radio" name="status" value="without_results" 
-                                   {% if status_filter == 'without_results' %}checked{% endif %}
-                                   class="rounded bg-gray-700 border-gray-600 text-green-500 focus:ring-green-500">
-                            <span class="text-gray-300">Without Results</span>
-                        </label>
+                        <select name="status" class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-300">
+                            <option value="">All Students</option>
+                            <option value="with_results" {% if status_filter == 'with_results' %}selected{% endif %}>With Results</option>
+                            <option value="without_results" {% if status_filter == 'without_results' %}selected{% endif %}>Without Results</option>
+                        </select>
                     </div>
                 </div>
 
@@ -100,8 +99,18 @@
                     Search Results
                 </h2>
                 <div class="flex items-center space-x-4">
+                    <!-- Pagination Info -->
+                    {% if pagination %}
+                    <span class="bg-purple-500 bg-opacity-20 text-purple-400 px-3 py-1 rounded-full text-sm font-medium">
+                        Page {{ pagination.page }} of {{ pagination.pages }}
+                    </span>
+                    {% endif %}
                     <span id="filteredCount" class="bg-green-500 bg-opacity-20 text-green-400 px-3 py-1 rounded-full text-sm font-medium">
-                        {{ students|length }} students
+                        {% if pagination %}
+                            {{ pagination.total }} total students
+                        {% else %}
+                            {{ students|length }} students
+                        {% endif %}
                     </span>
                     <span id="visibleCount" class="bg-blue-500 bg-opacity-20 text-blue-400 px-3 py-1 rounded-full text-sm font-medium hidden">
                         0 visible
@@ -109,25 +118,47 @@
                 </div>
             </div>
 
+            <!-- Items Per Page Selector -->
+            {% if pagination and pagination.pages > 1 %}
+            <div class="flex items-center justify-between mb-6">
+                <div class="flex items-center space-x-4">
+                    <span class="text-gray-400 text-sm">Items per page:</span>
+                    <select onchange="updatePerPage(this.value)" 
+                            class="bg-gray-700 border border-gray-600 rounded-lg px-3 py-1 text-white text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+                        <option value="10" {% if per_page == 10 %}selected{% endif %}>10</option>
+                        <option value="20" {% if per_page == 20 %}selected{% endif %}>20</option>
+                        <option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
+                        <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option>
+                    </select>
+                </div>
+                <div class="text-gray-400 text-sm">
+                    Showing {{ pagination.first }} to {{ pagination.last }} of {{ pagination.total }} results
+                </div>
+            </div>
+            {% endif %}
+
             {% if students %}
             <div class="overflow-x-auto">
                 <table class="w-full text-white" id="studentsTable">
                     <thead>
                         <tr class="border-b border-gray-700">
-                            <th class="py-4 px-4 text-left font-semibold text-gray-300 cursor-pointer sortable" data-sort="matric_no">
-                                Matric No <i class="fas fa-sort ml-1 text-gray-500"></i>
+                            <th class="py-4 px-4 text-left font-semibold text-gray-300 cursor-pointer hover:text-white transition-colors sortable" data-column="0">
+                                # <i class="fas fa-sort ml-1 text-gray-400 sort-icon"></i>
                             </th>
-                            <th class="py-4 px-4 text-left font-semibold text-gray-300 cursor-pointer sortable" data-sort="full_name">
-                                Full Name <i class="fas fa-sort ml-1 text-gray-500"></i>
+                            <th class="py-4 px-4 text-left font-semibold text-gray-300 cursor-pointer hover:text-white transition-colors sortable" data-column="1">
+                                Matric No <i class="fas fa-sort ml-1 text-gray-400 sort-icon"></i>
                             </th>
-                            <th class="py-4 px-4 text-left font-semibold text-gray-300 cursor-pointer sortable" data-sort="username">
-                                Username <i class="fas fa-sort ml-1 text-gray-500"></i>
+                            <th class="py-4 px-4 text-left font-semibold text-gray-300 cursor-pointer hover:text-white transition-colors sortable" data-column="2">
+                                Full Name <i class="fas fa-sort ml-1 text-gray-400 sort-icon"></i>
                             </th>
-                            <th class="py-4 px-4 text-left font-semibold text-gray-300 cursor-pointer sortable" data-sort="email">
-                                Email <i class="fas fa-sort ml-1 text-gray-500"></i>
+                            <th class="py-4 px-4 text-left font-semibold text-gray-300 cursor-pointer hover:text-white transition-colors sortable" data-column="3">
+                                Username <i class="fas fa-sort ml-1 text-gray-400 sort-icon"></i>
                             </th>
-                            <th class="py-4 px-4 text-left font-semibold text-gray-300 cursor-pointer sortable" data-sort="results">
-                                Results <i class="fas fa-sort ml-1 text-gray-500"></i>
+                            <th class="py-4 px-4 text-left font-semibold text-gray-300 cursor-pointer hover:text-white transition-colors sortable" data-column="4">
+                                Email <i class="fas fa-sort ml-1 text-gray-400 sort-icon"></i>
+                            </th>
+                            <th class="py-4 px-4 text-left font-semibold text-gray-300 cursor-pointer hover:text-white transition-colors sortable" data-column="5">
+                                Results <i class="fas fa-sort ml-1 text-gray-400 sort-icon"></i>
                             </th>
                             <th class="py-4 px-4 text-left font-semibold text-gray-300">Actions</th>
                         </tr>
@@ -140,6 +171,13 @@
                             data-username="{{ student.username }}"
                             data-email="{{ student.email }}"
                             data-results="{{ student.results|length if student.results else 0 }}">
+                            <td class="py-4 px-4 text-gray-300 text-center">
+                                {% if pagination %}
+                                    {{ pagination.first - 1 + loop.index }}
+                                {% else %}
+                                    {{ loop.index }}
+                                {% endif %}
+                            </td>
                             <td class="py-4 px-4">
                                 <div class="flex items-center">
                                     <div class="w-8 h-8 bg-green-500 bg-opacity-20 rounded-lg flex items-center justify-center mr-3">
@@ -177,11 +215,69 @@
                 </table>
             </div>
 
+            <!-- Simple Bottom Pagination -->
+            {% if pagination and pagination.pages > 1 %}
+            <div class="mt-6 flex items-center justify-between border-t border-gray-700 pt-6">
+                <div class="text-gray-400 text-sm">
+                    Showing {{ pagination.first }} to {{ pagination.last }} of {{ pagination.total }} students
+                </div>
+                <div class="flex items-center space-x-2">
+                    <!-- Previous Button -->
+                    {% if pagination.has_prev %}
+                    <a href="{{ build_pagination_url(pagination.prev_num, per_page) }}" 
+                       class="flex items-center px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-gray-300 hover:bg-gray-600 transition-all duration-300">
+                        <i class="fas fa-chevron-left mr-2 text-sm"></i>
+                        Previous
+                    </a>
+                    {% else %}
+                    <span class="flex items-center px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-gray-500 cursor-not-allowed">
+                        <i class="fas fa-chevron-left mr-2 text-sm"></i>
+                        Previous
+                    </span>
+                    {% endif %}
+
+                    <!-- Page Numbers -->
+                    <div class="flex items-center space-x-1">
+                        {% for page_num in pagination.iter_pages(left_edge=1, left_current=2, right_current=2, right_edge=1) %}
+                            {% if page_num %}
+                                {% if page_num == pagination.page %}
+                                <span class="px-3 py-1 bg-green-600 text-white rounded-lg text-sm font-medium">
+                                    {{ page_num }}
+                                </span>
+                                {% else %}
+                                <a href="{{ build_pagination_url(page_num, per_page) }}" 
+                                   class="px-3 py-1 bg-gray-700 text-gray-300 rounded-lg text-sm hover:bg-gray-600 transition-all duration-300">
+                                    {{ page_num }}
+                                </a>
+                                {% endif %}
+                            {% else %}
+                                <span class="px-2 text-gray-500">...</span>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+
+                    <!-- Next Button -->
+                    {% if pagination.has_next %}
+                    <a href="{{ build_pagination_url(pagination.next_num, per_page) }}" 
+                       class="flex items-center px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-gray-300 hover:bg-gray-600 transition-all duration-300">
+                        Next
+                        <i class="fas fa-chevron-right ml-2 text-sm"></i>
+                    </a>
+                    {% else %}
+                    <span class="flex items-center px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-gray-500 cursor-not-allowed">
+                        Next
+                        <i class="fas fa-chevron-right ml-2 text-sm"></i>
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
             <!-- Export Options -->
             <div class="mt-6 pt-6 border-t border-gray-700">
                 <div class="flex flex-col sm:flex-row gap-4 justify-between items-center">
                     <p class="text-gray-400 text-sm">
-                        <span id="totalCount">{{ students|length }}</span> total students • 
+                        <span id="totalCount">{{ students|length }}</span> students on this page • 
                         <span id="displayCount">{{ students|length }}</span> currently displayed
                         {% if search_query %}• Server filter: "{{ search_query }}"{% endif %}
                     </p>
@@ -197,10 +293,10 @@
                             <i class="fas fa-file-export mr-2"></i>Export Visible
                         </button>
 
-                        <!-- Server-side Export (optional) -->
-                        <a href="{{ url_for('export_students') }}?q={{ search_query }}&department={{ department_filter }}&status={{ status_filter }}" 
+                        <!-- Server-side Export (includes all filtered results, not just current page) -->
+                        <a href="{{ url_for('export_students') }}?q={{ search_query }}&department={{ department_filter }}&school={{ school_filter }}&status={{ status_filter }}" 
                            class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-all duration-300 flex items-center">
-                            <i class="fas fa-database mr-2"></i>Export All
+                            <i class="fas fa-database mr-2"></i>Export All Filtered
                         </a>
                     </div>
                 </div>
@@ -214,7 +310,7 @@
                 </div>
                 <h3 class="text-xl font-semibold text-gray-400 mb-2">No Students Found</h3>
                 <p class="text-gray-500 mb-6">
-                    {% if search_query or department_filter or status_filter %}
+                    {% if search_query or department_filter or school_filter or status_filter %}
                     No students match your search criteria. Try adjusting your filters.
                     {% else %}
                     No students are currently registered in the system.
@@ -236,32 +332,86 @@
     </div>
 </div>
 
-<style>
-.hover\:bg-gray-750:hover {
-    background-color: rgba(55, 65, 81, 0.5);
-}
-
-.sortable:hover {
-    background-color: rgba(55, 65, 81, 0.3);
-}
-
-.hidden {
-    display: none !important;
-}
-
-.student-row.hidden {
-    display: none;
-}
-
-@media print {
-    .no-print {
-        display: none !important;
-    }
-}
-</style>
-
+<!-- JavaScript -->
 <script>
-// Real-time search functionality
+// Export only visible (filtered) students
+function exportFilteredStudents() {
+    const visibleRows = document.querySelectorAll('.student-row:not(.hidden)');
+    
+    if (visibleRows.length === 0) {
+        alert('No students to export!');
+        return;
+    }
+    
+    let csvContent = "data:text/csv;charset=utf-8,";
+    csvContent += "S/N,Matric No,Full Name,Username,Email,Results Count\n";
+    
+    visibleRows.forEach((row, index) => {
+        const serialNo = index + 1;
+        const matricNo = row.getAttribute('data-matric_no');
+        const fullName = row.getAttribute('data-full_name');
+        const username = row.getAttribute('data-username');
+        const email = row.getAttribute('data-email');
+        const resultsCount = row.getAttribute('data-results');
+        
+        const rowData = [
+            serialNo,
+            matricNo,
+            fullName,
+            username,
+            email,
+            resultsCount
+        ].map(field => `"${field}"`).join(',');
+        
+        csvContent += rowData + "\n";
+    });
+    
+    // Create download link
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `students_export_${new Date().toISOString().slice(0,10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+// Update items per page
+function updatePerPage(value) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('per_page', value);
+    url.searchParams.set('page', 1); // Reset to first page
+    window.location.href = url.toString();
+}
+
+function printStudents() {
+    window.print();
+}
+
+function showNotification(message, type) {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 px-6 py-3 rounded-xl shadow-lg border transform transition-all duration-300 ${
+        type === 'success' ? 'bg-green-900 bg-opacity-20 text-green-400 border-green-800' :
+        type === 'error' ? 'bg-red-900 bg-opacity-20 text-red-400 border-red-800' :
+        'bg-blue-900 bg-opacity-20 text-blue-400 border-blue-800'
+    }`;
+    notification.innerHTML = `
+        <div class="flex items-center space-x-3">
+            <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+            <span>${message}</span>
+        </div>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Remove after 3 seconds
+    setTimeout(() => {
+        notification.remove();
+    }, 3000);
+}
+
+// Enhanced table sorting with visual indicators
 document.addEventListener('DOMContentLoaded', function() {
     const quickSearch = document.getElementById('quickSearch');
     const studentRows = document.querySelectorAll('.student-row');
@@ -277,7 +427,7 @@ document.addEventListener('DOMContentLoaded', function() {
         quickSearch.addEventListener('input', function() {
             const searchTerm = this.value.toLowerCase().trim();
             
-            studentRows.forEach(row => {
+            studentRows.forEach((row, index) => {
                 const matricNo = row.getAttribute('data-matric_no').toLowerCase();
                 const fullName = row.getAttribute('data-full_name').toLowerCase();
                 const username = row.getAttribute('data-username').toLowerCase();
@@ -290,6 +440,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 if (matches || searchTerm === '') {
                     row.classList.remove('hidden');
+                    // Update the serial number to reflect filtered position
+                    const serialCell = row.cells[0];
+                    if (serialCell) {
+                        const visibleIndex = Array.from(document.querySelectorAll('.student-row:not(.hidden)')).indexOf(row) + 1;
+                        serialCell.textContent = visibleIndex;
+                    }
                 } else {
                     row.classList.add('hidden');
                 }
@@ -299,53 +455,82 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Table sorting
+    // Table sorting functionality
     const sortableHeaders = document.querySelectorAll('.sortable');
     let currentSort = { column: null, direction: 'asc' };
     
     sortableHeaders.forEach(header => {
         header.addEventListener('click', function() {
-            const column = this.getAttribute('data-sort');
-            sortTable(column);
+            const columnIndex = parseInt(this.getAttribute('data-column'));
+            sortTable(columnIndex);
         });
     });
     
-    function sortTable(column) {
-        const rows = Array.from(studentRows);
-        const direction = currentSort.column === column && currentSort.direction === 'asc' ? 'desc' : 'asc';
+    function sortTable(columnIndex) {
+        const table = document.getElementById('studentsTable');
+        const tbody = table.querySelector('tbody');
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+        const isNumeric = columnIndex === 5; // Results column is numeric (now index 5 due to serial number)
+        
+        // Determine sort direction
+        const direction = currentSort.column === columnIndex && currentSort.direction === 'asc' ? 'desc' : 'asc';
         
         rows.sort((a, b) => {
-            let aValue, bValue;
+            let aValue = a.cells[columnIndex].textContent.trim();
+            let bValue = b.cells[columnIndex].textContent.trim();
             
-            if (column === 'results') {
-                aValue = parseInt(a.getAttribute('data-results'));
-                bValue = parseInt(b.getAttribute('data-results'));
-            } else {
-                aValue = a.getAttribute(`data-${column}`).toLowerCase();
-                bValue = b.getAttribute(`data-${column}`).toLowerCase();
+            // Handle numeric columns
+            if (isNumeric) {
+                const aNum = parseFloat(aValue) || 0;
+                const bNum = parseFloat(bValue) || 0;
+                return direction === 'asc' ? aNum - bNum : bNum - aNum;
             }
             
-            if (aValue < bValue) return direction === 'asc' ? -1 : 1;
-            if (aValue > bValue) return direction === 'asc' ? 1 : -1;
-            return 0;
+            // Handle text columns
+            if (direction === 'asc') {
+                return aValue.localeCompare(bValue);
+            } else {
+                return bValue.localeCompare(aValue);
+            }
         });
         
-        // Update table
-        const tbody = document.getElementById('studentsTableBody');
+        // Update table with sorted rows
         tbody.innerHTML = '';
-        rows.forEach(row => tbody.appendChild(row));
+        rows.forEach((row, index) => {
+            // Update serial number to reflect new position
+            const serialCell = row.cells[0];
+            if (serialCell) {
+                serialCell.textContent = index + 1;
+            }
+            tbody.appendChild(row);
+        });
         
         // Update sort indicators
-        sortableHeaders.forEach(header => {
-            const icon = header.querySelector('i');
-            if (header.getAttribute('data-sort') === column) {
-                icon.className = direction === 'asc' ? 'fas fa-sort-up ml-1 text-green-400' : 'fas fa-sort-down ml-1 text-green-400';
-            } else {
-                icon.className = 'fas fa-sort ml-1 text-gray-500';
-            }
+        updateSortIndicators(columnIndex, direction);
+        
+        // Store current sort state
+        currentSort = { column: columnIndex, direction };
+    }
+    
+    function updateSortIndicators(columnIndex, direction) {
+        const sortableHeaders = document.querySelectorAll('.sortable');
+        const sortIcons = document.querySelectorAll('.sort-icon');
+        
+        // Reset all icons
+        sortIcons.forEach(icon => {
+            icon.className = 'fas fa-sort ml-1 text-gray-400 sort-icon';
         });
         
-        currentSort = { column, direction };
+        // Update the active column icon
+        const activeHeader = document.querySelector(`.sortable[data-column="${columnIndex}"]`);
+        if (activeHeader) {
+            const activeIcon = activeHeader.querySelector('.sort-icon');
+            if (direction === 'asc') {
+                activeIcon.className = 'fas fa-sort-up ml-1 text-green-400 sort-icon';
+            } else {
+                activeIcon.className = 'fas fa-sort-down ml-1 text-green-400 sort-icon';
+            }
+        }
     }
     
     function updateCounts() {
@@ -367,49 +552,43 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 });
-
-// Export only visible (filtered) students
-function exportFilteredStudents() {
-    const visibleRows = document.querySelectorAll('.student-row:not(.hidden)');
-    
-    if (visibleRows.length === 0) {
-        alert('No students to export!');
-        return;
-    }
-    
-    let csvContent = "data:text/csv;charset=utf-8,";
-    csvContent += "Matric No,Full Name,Username,Email,Results Count\n";
-    
-    visibleRows.forEach(row => {
-        const matricNo = row.getAttribute('data-matric_no');
-        const fullName = row.getAttribute('data-full_name');
-        const username = row.getAttribute('data-username');
-        const email = row.getAttribute('data-email');
-        const resultsCount = row.getAttribute('data-results');
-        
-        const rowData = [
-            matricNo,
-            fullName,
-            username,
-            email,
-            resultsCount
-        ].map(field => `"${field}"`).join(',');
-        
-        csvContent += rowData + "\n";
-    });
-    
-    // Create download link
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `students_export_${new Date().toISOString().slice(0,10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-}
-
-function printStudents() {
-    window.print();
-}
 </script>
+
+<style>
+.hover\:bg-gray-750:hover {
+    background-color: rgba(55, 65, 81, 0.5);
+}
+
+.sortable:hover {
+    background-color: rgba(55, 65, 81, 0.3);
+}
+
+.hidden {
+    display: none !important;
+}
+
+.student-row.hidden {
+    display: none;
+}
+
+.sortable {
+    position: relative;
+    user-select: none;
+}
+
+.sortable:hover {
+    background-color: rgba(55, 65, 81, 0.3);
+}
+
+.sort-icon {
+    transition: all 0.2s ease-in-out;
+    font-size: 0.8em;
+}
+
+@media print {
+    .no-print {
+        display: none !important;
+    }
+}
+</style>
 {% endblock %}

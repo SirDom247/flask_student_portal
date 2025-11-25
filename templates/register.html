@@ -1,107 +1,421 @@
 {% extends "base.html" %}
-{% block title %}Register{% endblock %}
+
+{% block title %}Register - PDE Portal{% endblock %}
 
 {% block content %}
-<div class="max-w-md mx-auto mt-20 bg-white p-8 rounded-xl shadow-lg">
-    <h2 class="text-2xl font-bold mb-6 text-center">Register</h2>
-    <form method="POST" class="space-y-4">
+<div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full space-y-8">
+        <!-- Header -->
+        <div class="text-center">
+            <div class="mx-auto w-20 h-20 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full flex items-center justify-center mb-4 shadow-lg">
+                <i class="fas fa-user-plus text-white text-2xl"></i>
+            </div>
+            <h2 class="text-3xl font-bold bg-gradient-to-r from-green-400 to-emerald-500 bg-clip-text text-transparent">
+                Create Account
+            </h2>
 
-        <!-- First Name -->
-        <input type="text" name="first_name" placeholder="First Name" required
-               class="w-full px-4 py-2 rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-400"/>
-
-        <!-- Last Name -->
-        <input type="text" name="last_name" placeholder="Last Name" required
-               class="w-full px-4 py-2 rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-400"/>
-
-        <!-- Other Names -->
-        <input type="text" name="other_names" placeholder="Other Names (Optional)"
-               class="w-full px-4 py-2 rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-400"/>
-
-        <!-- Username -->
-        <input type="text" name="username" placeholder="Username" required
-               class="w-full px-4 py-2 rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-400"/>
-
-        <!-- Email -->
-        <input type="email" name="email" placeholder="Email" required
-               class="w-full px-4 py-2 rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-400"/>
-
-        <!-- Password -->
-        <div class="relative">
-            <input type="password" id="password" name="password" placeholder="Password" required
-                   class="w-full px-4 py-2 rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-400 pr-10"/>
-            <button type="button" onclick="togglePassword('password', this)"
-                    class="absolute right-2 top-2 text-gray-600">👁️</button>
         </div>
 
-        <!-- Confirm Password -->
-        <div class="relative">
-            <input type="password" id="confirm_password" name="confirm_password" placeholder="Confirm Password" required
-                   class="w-full px-4 py-2 rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-400 pr-10"/>
-            <button type="button" onclick="togglePassword('confirm_password', this)"
-                    class="absolute right-2 top-2 text-gray-600">👁️</button>
+        <!-- Registration Form -->
+        <div class="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-8 border border-gray-700 shadow-2xl">
+            <form method="POST" class="space-y-6" id="registerForm">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                
+                <!-- Name Row -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">
+                            <i class="fas fa-user mr-2 text-green-400"></i>First Name
+                        </label>
+                        <input type="text" name="first_name" required
+                               class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-300"
+                               placeholder="John"
+                               autocomplete="given-name">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">
+                            <i class="fas fa-user mr-2 text-green-400"></i>Last Name
+                        </label>
+                        <input type="text" name="last_name" required
+                               class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-300"
+                               placeholder="Doe"
+                               autocomplete="family-name">
+                    </div>
+                </div>
+
+                <!-- Other Names -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">
+                        <i class="fas fa-user-tag mr-2 text-blue-400"></i>Other Names
+                    </label>
+                    <input type="text" name="other_names"
+                           class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-300"
+                           placeholder="Middle name (optional)"
+                           autocomplete="additional-name">
+                </div>
+
+                <!-- Username & Email -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">
+                            <i class="fas fa-at mr-2 text-purple-400"></i>Username
+                        </label>
+                        <input type="text" name="username" required
+                               class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-300"
+                               placeholder="johndoe"
+                               autocomplete="username">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">
+                            <i class="fas fa-envelope mr-2 text-green-400"></i>Email
+                        </label>
+                        <input type="email" name="email" required
+                               class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-300"
+                               placeholder="john@example.com"
+                               autocomplete="email">
+                    </div>
+                </div>
+
+                <!-- Passwords -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">
+                            <i class="fas fa-lock mr-2 text-green-400"></i>Password
+                        </label>
+                        <div class="relative">
+                            <input type="password" id="password" name="password" required
+                                   class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-300 pr-12"
+                                   placeholder="••••••••"
+                                   autocomplete="new-password"
+                                   minlength="8"
+                                   oninput="updatePasswordFeedback(this.value)">
+                            <button type="button" onclick="togglePassword('password', this)"
+                                    class="absolute right-3 top-10 text-gray-400 hover:text-green-400 transition-colors duration-200"
+                                    aria-label="Toggle password visibility">
+                                <i class="fas fa-eye" id="password-icon"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">
+                            <i class="fas fa-lock mr-2 text-green-400"></i>Confirm Password
+                        </label>
+                        <div class="relative">
+                            <input type="password" id="confirm_password" name="confirm_password" required
+                                   class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-300 pr-12"
+                                   placeholder="••••••••"
+                                   autocomplete="new-password">
+                            <button type="button" onclick="togglePassword('confirm_password', this)"
+                                    class="absolute right-3 top-10 text-gray-400 hover:text-green-400 transition-colors duration-200"
+                                    aria-label="Toggle password visibility">
+                                <i class="fas fa-eye" id="confirm-password-icon"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Password Requirements -->
+                <div id="password-feedback" class="bg-gray-700 rounded-xl p-4 border border-gray-600">
+                    <p class="text-sm font-medium text-gray-300 mb-2">
+                        <i class="fas fa-shield-alt mr-2 text-blue-400"></i>Password Requirements
+                    </p>
+                    <div class="space-y-1 text-sm">
+                        <div class="text-gray-400">Enter a password to see requirements</div>
+                    </div>
+                </div>
+
+                <!-- Department & School -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">
+                            <i class="fas fa-building mr-2 text-yellow-400"></i>Department
+                        </label>
+                        <select name="department" required
+                                class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-300">
+                            <option value="" class="text-gray-400">Select Department</option>
+                            <option value="Computer Science" class="text-white">Computer Science</option>
+                            <option value="Mathematics" class="text-white">Mathematics</option>
+                            <option value="Physics" class="text-white">Physics</option>
+                            <option value="Chemistry" class="text-white">Chemistry</option>
+                            <option value="Biology" class="text-white">Biology</option>
+                            <option value="Engineering" class="text-white">Engineering</option>
+                            <option value="Business Administration" class="text-white">Business Administration</option>
+                            <option value="Economics" class="text-white">Economics</option>
+                            <option value="Psychology" class="text-white">Psychology</option>
+                            <option value="Sociology" class="text-white">Sociology</option>
+                            <option value="English" class="text-white">English</option>
+                            <option value="History" class="text-white">History</option>
+                            <option value="Political Science" class="text-white">Political Science</option>
+                            <option value="Accounting" class="text-white">Accounting</option>
+                            <option value="Finance" class="text-white">Finance</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">
+                            <i class="fas fa-university mr-2 text-purple-400"></i>School/Faculty
+                        </label>
+                        <input type="text" name="school"
+                               class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-300"
+                               placeholder="School of Computing">
+                    </div>
+                </div>
+
+                <!-- Role & Matric -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">
+                            <i class="fas fa-user-tie mr-2 text-green-400"></i>Role
+                        </label>
+                        <select id="role" name="role" required
+                                class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-300">
+                            <option value="" class="text-gray-400">Select Role</option>
+                            <option value="student" class="text-white">Student</option>
+                            <option value="officer" class="text-white">Exam Officer</option>
+                        </select>
+                    </div>
+                    <div id="matric-container" style="display: none;">
+                        <label class="block text-sm font-medium text-gray-300 mb-2">
+                            <i class="fas fa-id-card mr-2 text-blue-400"></i>Matric Number
+                        </label>
+                        <input type="text" name="matric_no"
+                               class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-300"
+                               placeholder="CS2024001">
+                    </div>
+                </div>
+
+                <!-- Terms Agreement -->
+                <div class="flex items-start space-x-3">
+                    <input type="checkbox" id="terms_agreement" name="terms_agreement" required
+                           class="w-4 h-4 text-green-600 bg-gray-700 border-gray-600 rounded focus:ring-green-500 focus:ring-2 mt-1">
+                    <label for="terms_agreement" class="text-sm text-gray-300">
+                        I agree to the <a href="#" class="text-green-400 hover:text-green-300">Terms of Service</a> 
+                        and <a href="#" class="text-green-400 hover:text-green-300">Privacy Policy</a>
+                    </label>
+                </div>
+
+                <!-- Submit Button -->
+                <button type="submit"
+                        class="w-full bg-gradient-to-r from-green-600 to-emerald-700 text-white py-4 rounded-xl font-semibold hover:shadow-2xl transition-all duration-300 hover:scale-105 transform shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                        id="register-btn">
+                    <i class="fas fa-user-plus mr-2"></i>Create Account
+                </button>
+
+                <!-- Login Link -->
+                <div class="text-center">
+                    <p class="text-sm text-gray-400">
+                        Already have an account?
+                        <a href="{{ url_for('login') }}" class="font-medium text-green-400 hover:text-green-300 transition-colors duration-200">
+                            Sign in here
+                        </a>
+                    </p>
+                </div>
+            </form>
         </div>
 
-        <!-- Role Selection -->
-        <select name="role" id="role" required
-                class="w-full px-4 py-2 rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-400">
-            <option value="">Select Role</option>
-            <option value="student">Student</option>
-            <option value="officer">Exam Officer</option>
-        </select>
-
-        <!-- Matric Number (only for students) -->
-        <input type="text" name="matric_no" id="matric_no" placeholder="Matric No (students only)"
-               class="w-full px-4 py-2 rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-400"
-               style="display:none;"/>
-
-        <!-- Submit -->
-        <button type="submit" class="w-full bg-indigo-600 text-white py-2 rounded hover:bg-indigo-700 transition">
-            Register
-        </button>
-    </form>
-
-    <p class="mt-4 text-sm text-gray-600 text-center">
-        Already have an account? <a href="{{ url_for('login') }}" class="text-indigo-600">Login</a>
-    </p>
+        <!-- Security Notice -->
+        <div class="bg-blue-900 bg-opacity-20 rounded-xl p-4 border border-blue-800">
+            <div class="flex items-start">
+                <i class="fas fa-shield-alt text-blue-400 mt-1 mr-3"></i>
+                <div>
+                    <p class="text-sm text-blue-300 font-medium">Secure Registration</p>
+                    <p class="text-xs text-blue-400 mt-1">Your information is encrypted and protected with enterprise-grade security.</p>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
     // Toggle password visibility
     function togglePassword(id, btn) {
         const input = document.getElementById(id);
+        const icon = btn.querySelector('i');
+        
         if (input.type === "password") {
             input.type = "text";
-            btn.textContent = "🙈";
+            icon.className = "fas fa-eye-slash";
+            btn.classList.add('text-green-400');
         } else {
             input.type = "password";
-            btn.textContent = "👁️";
+            icon.className = "fas fa-eye";
+            btn.classList.remove('text-green-400');
         }
     }
 
-    // Confirm password validation
-    const form = document.querySelector('form');
+    // Password complexity validation
+    function validatePassword(password) {
+        const requirements = {
+            length: password.length >= 8,
+            uppercase: /[A-Z]/.test(password),
+            lowercase: /[a-z]/.test(password),
+            number: /[0-9]/.test(password),
+            special: /[!@#$%^&*(),.?":{}|<>]/.test(password)
+        };
+        
+        return {
+            isValid: Object.values(requirements).every(Boolean),
+            requirements: requirements
+        };
+    }
+
+    function updatePasswordFeedback(password) {
+        const result = validatePassword(password);
+        const feedbackElement = document.getElementById('password-feedback');
+        
+        if (feedbackElement) {
+            const allMet = Object.values(result.requirements).every(Boolean);
+            
+            feedbackElement.innerHTML = `
+                <p class="text-sm font-medium ${allMet ? 'text-green-400' : 'text-gray-300'} mb-2">
+                    <i class="fas fa-shield-alt mr-2 ${allMet ? 'text-green-400' : 'text-blue-400'}"></i>
+                    ${allMet ? '✓ All requirements met!' : 'Password Requirements:'}
+                </p>
+                <div class="space-y-1 text-sm">
+                    <div class="${result.requirements.length ? 'text-green-400' : 'text-red-400'} flex items-center">
+                        <i class="fas ${result.requirements.length ? 'fa-check-circle' : 'fa-times-circle'} mr-2"></i>
+                        At least 8 characters
+                    </div>
+                    <div class="${result.requirements.uppercase ? 'text-green-400' : 'text-red-400'} flex items-center">
+                        <i class="fas ${result.requirements.uppercase ? 'fa-check-circle' : 'fa-times-circle'} mr-2"></i>
+                        One uppercase letter
+                    </div>
+                    <div class="${result.requirements.lowercase ? 'text-green-400' : 'text-red-400'} flex items-center">
+                        <i class="fas ${result.requirements.lowercase ? 'fa-check-circle' : 'fa-times-circle'} mr-2"></i>
+                        One lowercase letter
+                    </div>
+                    <div class="${result.requirements.number ? 'text-green-400' : 'text-red-400'} flex items-center">
+                        <i class="fas ${result.requirements.number ? 'fa-check-circle' : 'fa-times-circle'} mr-2"></i>
+                        One number
+                    </div>
+                    <div class="${result.requirements.special ? 'text-green-400' : 'text-red-400'} flex items-center">
+                        <i class="fas ${result.requirements.special ? 'fa-check-circle' : 'fa-times-circle'} mr-2"></i>
+                        One special character
+                    </div>
+                </div>
+            `;
+            
+            // Update border color based on validation
+            feedbackElement.className = `rounded-xl p-4 border-2 ${allMet ? 'bg-green-900 bg-opacity-20 border-green-600' : 'bg-gray-700 border-gray-600'}`;
+        }
+        
+        return result.isValid;
+    }
+
+    // Enhanced form validation
+    const form = document.getElementById('registerForm');
     form.addEventListener('submit', function(event) {
         const password = document.getElementById('password').value;
         const confirmPassword = document.getElementById('confirm_password').value;
-        if (password !== confirmPassword) {
-            alert("Passwords do not match!");
+        const termsAgreement = document.getElementById('terms_agreement').checked;
+        
+        const isPasswordValid = validatePassword(password).isValid;
+        
+        if (!termsAgreement) {
             event.preventDefault();
+            showNotification('Please agree to the Terms of Service and Privacy Policy.', 'error');
+            return;
+        }
+        
+        if (!isPasswordValid) {
+            event.preventDefault();
+            // Add shake animation to password field
+            const passwordField = document.getElementById('password');
+            passwordField.classList.add('animate-shake');
+            setTimeout(() => passwordField.classList.remove('animate-shake'), 500);
+            showNotification('Please make sure your password meets all requirements.', 'error');
+            return;
+        }
+        
+        if (password !== confirmPassword) {
+            event.preventDefault();
+            const confirmField = document.getElementById('confirm_password');
+            confirmField.classList.add('animate-shake', 'border-red-500');
+            setTimeout(() => confirmField.classList.remove('animate-shake'), 500);
+            showNotification('Passwords do not match.', 'error');
         }
     });
 
     // Show matric number only if role = student
     const roleSelect = document.getElementById('role');
-    const matricField = document.getElementById('matric_no');
+    const matricContainer = document.getElementById('matric-container');
 
     roleSelect.addEventListener('change', function () {
         if (this.value === 'student') {
-            matricField.style.display = "block";
-            matricField.required = true;
+            matricContainer.style.display = "block";
+            document.getElementById('matric_no').required = true;
         } else {
-            matricField.style.display = "none";
-            matricField.required = false;
+            matricContainer.style.display = "none";
+            document.getElementById('matric_no').required = false;
         }
     });
+
+    // Notification system
+    function showNotification(message, type = 'info') {
+        // Remove existing notifications
+        const existingNotifications = document.querySelectorAll('.custom-notification');
+        existingNotifications.forEach(notification => notification.remove());
+
+        // Create notification element
+        const notification = document.createElement('div');
+        notification.className = `fixed top-4 right-4 px-6 py-3 rounded-xl shadow-lg z-50 transform transition-all duration-300 custom-notification ${
+            type === 'success' ? 'bg-green-600 text-white border border-green-500' :
+            type === 'error' ? 'bg-red-600 text-white border border-red-500' :
+            type === 'warning' ? 'bg-yellow-600 text-white border border-yellow-500' :
+            'bg-blue-600 text-white border border-blue-500'
+        }`;
+        
+        notification.innerHTML = `
+            <div class="flex items-center">
+                <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-triangle' : type === 'warning' ? 'exclamation-circle' : 'info-circle'} mr-3"></i>
+                <span class="flex-1">${message}</span>
+                <button onclick="this.parentElement.parentElement.remove()" class="ml-4 text-white hover:text-gray-200 transition-colors">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+            if (notification.parentElement) {
+                notification.remove();
+            }
+        }, 5000);
+    }
+
+    // Add custom CSS for shake animation
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        .animate-shake {
+            animation: shake 0.5s ease-in-out;
+        }
+        
+        .custom-notification {
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        input:focus, select:focus {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+        }
+    `;
+    document.head.appendChild(style);
 </script>
 {% endblock %}

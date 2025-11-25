@@ -1,0 +1,919 @@
+{% extends "base.html" %}
+{% block title %}Bulk Actions - PDE Portal{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-gray-900 to-black py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <!-- Header Section -->
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-white mb-2">Bulk Actions Management</h1>
+            <p class="text-gray-400 text-lg">Perform mass deletion operations with safety measures</p>
+        </div>
+
+        <!-- Statistics Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-6 border border-gray-700">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-400 text-sm">Total Students</p>
+                        <p class="text-3xl font-bold text-white">{{ stats.total_students }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-green-500 bg-opacity-20 rounded-xl flex items-center justify-center">
+                        <i class="fas fa-users text-green-400 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-6 border border-gray-700">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-400 text-sm">Total Results</p>
+                        <p class="text-3xl font-bold text-white">{{ stats.total_results }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-blue-500 bg-opacity-20 rounded-xl flex items-center justify-center">
+                        <i class="fas fa-chart-bar text-blue-400 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-6 border border-gray-700">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-400 text-sm">Pending Students</p>
+                        <p class="text-3xl font-bold text-white">{{ stats.pending_students }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-yellow-500 bg-opacity-20 rounded-xl flex items-center justify-center">
+                        <i class="fas fa-clock text-yellow-400 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-6 border border-gray-700">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-400 text-sm">Departments</p>
+                        <p class="text-3xl font-bold text-white">{{ stats.all_departments|length }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-purple-500 bg-opacity-20 rounded-xl flex items-center justify-center">
+                        <i class="fas fa-building text-purple-400 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bulk Student Deletion -->
+        <div class="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-6 border border-red-700 mb-8">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-2xl font-bold text-white flex items-center">
+                    <i class="fas fa-users text-red-400 mr-3"></i>
+                    Bulk Student Deletion
+                </h2>
+                <span class="bg-red-500 bg-opacity-20 text-red-400 px-3 py-1 rounded-full text-sm font-medium">
+                    Dangerous Operation
+                </span>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Delete Selected Students -->
+                <div class="bg-gray-750 rounded-xl p-6 border border-gray-600">
+                    <h3 class="text-lg font-bold text-white mb-3 flex items-center">
+                        <i class="fas fa-mouse-pointer text-red-400 mr-2"></i>
+                        Delete Selected Students
+                    </h3>
+                    <p class="text-gray-300 mb-4">Manually select individual students from a list to delete</p>
+                    <button onclick="openStudentSelection()" 
+                            class="w-full bg-red-600 hover:bg-red-700 text-white py-3 px-4 rounded-xl font-semibold transition-all duration-300 hover:scale-105 transform flex items-center justify-center">
+                        <i class="fas fa-list mr-2"></i>Select Students to Delete
+                    </button>
+                </div>
+
+                <!-- Delete by Criteria -->
+                <div class="bg-gray-750 rounded-xl p-6 border border-gray-600">
+                    <h3 class="text-lg font-bold text-white mb-3 flex items-center">
+                        <i class="fas fa-filter text-red-400 mr-2"></i>
+                        Delete by Criteria
+                    </h3>
+                    <p class="text-gray-300 mb-4">Delete students based on specific criteria and filters</p>
+                    <form id="bulkStudentCriteriaForm" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Department</label>
+                            <select class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-300" name="department">
+                                <option value="">All Departments</option>
+                                {% for dept in all_departments %}
+                                <option value="{{ dept }}">{{ dept }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">School</label>
+                            <select class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-300" name="school">
+                                <option value="">All Schools</option>
+                                {% for school in all_schools %}
+                                <option value="{{ school }}">{{ school }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Results Status</label>
+                            <select class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-300" name="has_results">
+                                <option value="">All Students</option>
+                                <option value="with">With Results</option>
+                                <option value="without">Without Results</option>
+                            </select>
+                        </div>
+                        <button type="button" onclick="previewStudentsByCriteria()" 
+                                class="w-full bg-red-600 hover:bg-red-700 text-white py-3 px-4 rounded-xl font-semibold transition-all duration-300 hover:scale-105 transform">
+                            <i class="fas fa-eye mr-2"></i>Preview Students
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bulk Results Deletion -->
+        <div class="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-6 border border-yellow-700">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-2xl font-bold text-white flex items-center">
+                    <i class="fas fa-chart-bar text-yellow-400 mr-3"></i>
+                    Bulk Results Deletion
+                </h2>
+                <span class="bg-yellow-500 bg-opacity-20 text-yellow-400 px-3 py-1 rounded-full text-sm font-medium">
+                    Advanced Filtering
+                </span>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Delete Selected Results -->
+                <div class="bg-gray-750 rounded-xl p-6 border border-gray-600">
+                    <h3 class="text-lg font-bold text-white mb-3 flex items-center">
+                        <i class="fas fa-mouse-pointer text-yellow-400 mr-2"></i>
+                        Delete Selected Results
+                    </h3>
+                    <p class="text-gray-300 mb-4">Manually select individual results from a list to delete</p>
+                    <button onclick="openResultSelection()" 
+                            class="w-full bg-yellow-600 hover:bg-yellow-700 text-white py-3 px-4 rounded-xl font-semibold transition-all duration-300 hover:scale-105 transform flex items-center justify-center">
+                        <i class="fas fa-list mr-2"></i>Select Results to Delete
+                    </button>
+                </div>
+
+                <!-- Delete by Criteria -->
+                <div class="bg-gray-750 rounded-xl p-6 border border-gray-600">
+                    <h3 class="text-lg font-bold text-white mb-3 flex items-center">
+                        <i class="fas fa-filter text-yellow-400 mr-2"></i>
+                        Delete by Criteria
+                    </h3>
+                    <p class="text-gray-300 mb-4">Delete results based on multiple criteria and filters</p>
+                    <form id="bulkResultCriteriaForm" class="space-y-4">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-300 mb-2">Course Code</label>
+                                <select class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:ring-1 focus:ring-yellow-500 transition-all duration-300" name="course_code">
+                                    <option value="">All Courses</option>
+                                    {% for course in all_courses %}
+                                    <option value="{{ course }}">{{ course }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-300 mb-2">Grade</label>
+                                <select class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:ring-1 focus:ring-yellow-500 transition-all duration-300" name="grade">
+                                    <option value="">All Grades</option>
+                                    {% for grade in all_grades %}
+                                    <option value="{{ grade }}">{{ grade }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-300 mb-2">Academic Session</label>
+                                <select class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:ring-1 focus:ring-yellow-500 transition-all duration-300" name="academic_session">
+                                    <option value="">All Sessions</option>
+                                    {% for session in all_sessions %}
+                                    <option value="{{ session }}">{{ session }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-300 mb-2">Semester</label>
+                                <select class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:ring-1 focus:ring-yellow-500 transition-all duration-300" name="semester">
+                                    <option value="">All Semesters</option>
+                                    {% for semester in all_semesters %}
+                                    <option value="{{ semester }}">{{ semester }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-300 mb-2">Min Score</label>
+                                <input type="number" class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:ring-1 focus:ring-yellow-500 transition-all duration-300" name="min_score" min="0" max="100" placeholder="0">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-300 mb-2">Max Score</label>
+                                <input type="number" class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:ring-1 focus:ring-yellow-500 transition-all duration-300" name="max_score" min="0" max="100" placeholder="100">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-300 mb-2">Date From</label>
+                                <input type="date" class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:ring-1 focus:ring-yellow-500 transition-all duration-300" name="date_from">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-300 mb-2">Date To</label>
+                                <input type="date" class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:ring-1 focus:ring-yellow-500 transition-all duration-300" name="date_to">
+                            </div>
+                        </div>
+
+                        <button type="button" onclick="previewResultsByCriteria()" 
+                                class="w-full bg-yellow-600 hover:bg-yellow-700 text-white py-3 px-4 rounded-xl font-semibold transition-all duration-300 hover:scale-105 transform">
+                            <i class="fas fa-eye mr-2"></i>Preview Results
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Preview Modal -->
+<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden" id="previewModal">
+    <div class="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl border border-gray-700 max-w-6xl w-full mx-4 max-h-[80vh] flex flex-col">
+        <div class="flex items-center justify-between p-6 border-b border-gray-700">
+            <h3 class="text-xl font-bold text-white" id="previewModalTitle">Preview Items for Deletion</h3>
+            <button type="button" onclick="closePreviewModal()" class="text-gray-400 hover:text-white">
+                <i class="fas fa-times text-lg"></i>
+            </button>
+        </div>
+        <div class="flex-1 overflow-auto p-6">
+            <div class="mb-4 flex justify-between items-center">
+                <div>
+                    <span id="previewCount" class="bg-red-500 bg-opacity-20 text-red-400 px-3 py-1 rounded-full text-sm font-medium">
+                        0 items selected
+                    </span>
+                </div>
+                <div class="text-gray-300 text-sm" id="previewSummary">
+                    Review the items below before proceeding with deletion
+                </div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-white" id="previewTable">
+                    <thead id="previewTableHead">
+                        <!-- Table headers will be populated dynamically -->
+                    </thead>
+                    <tbody id="previewTableBody">
+                        <!-- Preview items will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+            <div id="previewEmpty" class="text-center py-8 text-gray-400 hidden">
+                <i class="fas fa-search text-3xl mb-3 opacity-50"></i>
+                <p>No items match the selected criteria</p>
+            </div>
+        </div>
+        <div class="flex justify-between items-center p-6 border-t border-gray-700">
+            <div class="text-gray-300 text-sm">
+                <i class="fas fa-info-circle text-blue-400 mr-2"></i>
+                A backup will be created automatically before deletion
+            </div>
+            <div class="flex space-x-3">
+                <button type="button" onclick="closePreviewModal()" 
+                        class="bg-gray-600 hover:bg-gray-700 text-white py-2 px-6 rounded-xl font-semibold transition-all duration-300">
+                    Cancel
+                </button>
+                <button type="button" id="confirmPreviewDeleteBtn"
+                        class="bg-red-600 hover:bg-red-700 text-white py-2 px-6 rounded-xl font-semibold transition-all duration-300">
+                    Confirm Delete
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Student Selection Modal -->
+<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden" id="studentSelectionModal">
+    <div class="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl border border-gray-700 max-w-4xl w-full mx-4 max-h-[80vh] flex flex-col">
+        <div class="flex items-center justify-between p-6 border-b border-gray-700">
+            <h3 class="text-xl font-bold text-white">Select Students to Delete</h3>
+            <button type="button" onclick="closeStudentSelectionModal()" class="text-gray-400 hover:text-white">
+                <i class="fas fa-times text-lg"></i>
+            </button>
+        </div>
+        <div class="flex-1 overflow-auto p-6">
+            <div class="overflow-x-auto">
+                <table class="w-full text-white">
+                    <thead>
+                        <tr class="border-b border-gray-700">
+                            <th class="py-3 px-4 text-left font-semibold text-gray-300">
+                                <input type="checkbox" id="selectAllStudents" class="rounded border-gray-600 bg-gray-700 text-red-500 focus:ring-red-500">
+                            </th>
+                            <th class="py-3 px-4 text-left font-semibold text-gray-300">Matric No</th>
+                            <th class="py-3 px-4 text-left font-semibold text-gray-300">Name</th>
+                            <th class="py-3 px-4 text-left font-semibold text-gray-300">Department</th>
+                            <th class="py-3 px-4 text-left font-semibold text-gray-300">Results Count</th>
+                        </tr>
+                    </thead>
+                    <tbody id="studentSelectionBody">
+                        <!-- Students will be loaded here via JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="flex justify-end space-x-3 p-6 border-t border-gray-700">
+            <button type="button" onclick="closeStudentSelectionModal()" 
+                    class="bg-gray-600 hover:bg-gray-700 text-white py-2 px-6 rounded-xl font-semibold transition-all duration-300">
+                Cancel
+            </button>
+            <button type="button" onclick="previewSelectedStudents()" 
+                    class="bg-red-600 hover:bg-red-700 text-white py-2 px-6 rounded-xl font-semibold transition-all duration-300">
+                Preview Selected
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Result Selection Modal -->
+<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden" id="resultSelectionModal">
+    <div class="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl border border-gray-700 max-w-6xl w-full mx-4 max-h-[80vh] flex flex-col">
+        <div class="flex items-center justify-between p-6 border-b border-gray-700">
+            <h3 class="text-xl font-bold text-white">Select Results to Delete</h3>
+            <button type="button" onclick="closeResultSelectionModal()" class="text-gray-400 hover:text-white">
+                <i class="fas fa-times text-lg"></i>
+            </button>
+        </div>
+        <div class="flex-1 overflow-auto p-6">
+            <div class="overflow-x-auto">
+                <table class="w-full text-white">
+                    <thead>
+                        <tr class="border-b border-gray-700">
+                            <th class="py-3 px-4 text-left font-semibold text-gray-300">
+                                <input type="checkbox" id="selectAllResults" class="rounded border-gray-600 bg-gray-700 text-yellow-500 focus:ring-yellow-500">
+                            </th>
+                            <th class="py-3 px-4 text-left font-semibold text-gray-300">Matric No</th>
+                            <th class="py-3 px-4 text-left font-semibold text-gray-300">Course Code</th>
+                            <th class="py-3 px-4 text-left font-semibold text-gray-300">Score</th>
+                            <th class="py-3 px-4 text-left font-semibold text-gray-300">Grade</th>
+                            <th class="py-3 px-4 text-left font-semibold text-gray-300">Session</th>
+                            <th class="py-3 px-4 text-left font-semibold text-gray-300">Semester</th>
+                        </tr>
+                    </thead>
+                    <tbody id="resultSelectionBody">
+                        <!-- Results will be loaded here via JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="flex justify-end space-x-3 p-6 border-t border-gray-700">
+            <button type="button" onclick="closeResultSelectionModal()" 
+                    class="bg-gray-600 hover:bg-gray-700 text-white py-2 px-6 rounded-xl font-semibold transition-all duration-300">
+                Cancel
+            </button>
+            <button type="button" onclick="previewSelectedResults()" 
+                    class="bg-yellow-600 hover:bg-yellow-700 text-white py-2 px-6 rounded-xl font-semibold transition-all duration-300">
+                Preview Selected
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+.bg-gray-750 {
+    background-color: rgba(55, 65, 81, 0.5);
+}
+
+.hidden {
+    display: none;
+}
+
+.fixed {
+    position: fixed;
+}
+
+.inset-0 {
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+}
+
+.max-h-\[80vh\] {
+    max-height: 80vh;
+}
+</style>
+
+<script>
+// Global variables
+let selectedStudentIds = [];
+let selectedResultIds = [];
+let currentPreviewType = ''; // 'students' or 'results'
+let currentPreviewCriteria = {};
+
+// Modal functions with proper z-index management
+function showModal(modalId) {
+    document.getElementById(modalId).classList.remove('hidden');
+    // Ensure the modal has proper z-index
+    document.getElementById(modalId).style.zIndex = '60';
+}
+
+function showPreviewModal(modalId) {
+    document.getElementById(modalId).classList.remove('hidden');
+    // Preview modals should have higher z-index to appear on top
+    document.getElementById(modalId).style.zIndex = '70';
+}
+
+function closeModal(modalId) {
+    document.getElementById(modalId).classList.add('hidden');
+    document.getElementById(modalId).style.zIndex = '';
+}
+
+function closePreviewModal() {
+    closeModal('previewModal');
+}
+
+function closeStudentSelectionModal() {
+    closeModal('studentSelectionModal');
+}
+
+function closeResultSelectionModal() {
+    closeModal('resultSelectionModal');
+}
+
+// Student Selection Functions
+function openStudentSelection() {
+    fetch('/api/v1/students')
+        .then(response => response.json())
+        .then(students => {
+            const tbody = document.getElementById('studentSelectionBody');
+            tbody.innerHTML = '';
+            selectedStudentIds = [];
+            
+            students.forEach(student => {
+                const row = document.createElement('tr');
+                row.className = 'border-b border-gray-700 hover:bg-gray-750';
+                row.innerHTML = `
+                    <td class="py-3 px-4">
+                        <input type="checkbox" value="${student.id}" onchange="toggleStudentSelection(${student.id}, this.checked)" 
+                               class="rounded border-gray-600 bg-gray-700 text-red-500 focus:ring-red-500">
+                    </td>
+                    <td class="py-3 px-4">${student.matric_no}</td>
+                    <td class="py-3 px-4">${student.full_name}</td>
+                    <td class="py-3 px-4">${student.department}</td>
+                    <td class="py-3 px-4">
+                        <span class="bg-blue-500 bg-opacity-20 text-blue-400 px-2 py-1 rounded-full text-xs">
+                            ${student.results_count || 0}
+                        </span>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+            
+            showModal('studentSelectionModal');
+        });
+}
+
+function toggleStudentSelection(studentId, isChecked) {
+    if (isChecked) {
+        selectedStudentIds.push(studentId);
+    } else {
+        selectedStudentIds = selectedStudentIds.filter(id => id !== studentId);
+    }
+}
+
+function previewSelectedStudents() {
+    if (selectedStudentIds.length === 0) {
+        alert('Please select at least one student');
+        return;
+    }
+    
+    // Fetch the selected students' details for preview
+    fetch('/api/v1/students')
+        .then(response => response.json())
+        .then(students => {
+            const selectedStudents = students.filter(s => selectedStudentIds.includes(s.id));
+            showPreview('students', selectedStudents, 'selected');
+            // Don't close the selection modal - keep it open behind the preview
+        });
+}
+
+function previewStudentsByCriteria() {
+    const form = document.getElementById('bulkStudentCriteriaForm');
+    const formData = new FormData(form);
+    const criteria = Object.fromEntries(formData.entries());
+    
+    // Remove empty values
+    Object.keys(criteria).forEach(key => {
+        if (!criteria[key]) delete criteria[key];
+    });
+    
+    // Fetch students matching criteria
+    fetch('/api/v1/students')
+        .then(response => response.json())
+        .then(students => {
+            let filteredStudents = students;
+            
+            // Apply filters
+            if (criteria.department) {
+                filteredStudents = filteredStudents.filter(s => s.department === criteria.department);
+            }
+            if (criteria.school) {
+                filteredStudents = filteredStudents.filter(s => s.school === criteria.school);
+            }
+            if (criteria.has_results === 'with') {
+                filteredStudents = filteredStudents.filter(s => s.results_count > 0);
+            } else if (criteria.has_results === 'without') {
+                filteredStudents = filteredStudents.filter(s => s.results_count === 0);
+            }
+            
+            showPreview('students', filteredStudents, 'criteria', criteria);
+        });
+}
+
+// Results Selection Functions
+function openResultSelection() {
+    fetch('/api/v1/results')
+        .then(response => response.json())
+        .then(results => {
+            const tbody = document.getElementById('resultSelectionBody');
+            tbody.innerHTML = '';
+            selectedResultIds = [];
+            
+            results.forEach(result => {
+                const row = document.createElement('tr');
+                row.className = 'border-b border-gray-700 hover:bg-gray-750';
+                row.innerHTML = `
+                    <td class="py-3 px-4">
+                        <input type="checkbox" value="${result.id}" onchange="toggleResultSelection(${result.id}, this.checked)"
+                               class="rounded border-gray-600 bg-gray-700 text-yellow-500 focus:ring-yellow-500">
+                    </td>
+                    <td class="py-3 px-4">${result.matric_no}</td>
+                    <td class="py-3 px-4">${result.course_code}</td>
+                    <td class="py-3 px-4">
+                        <span class="px-2 py-1 rounded-full text-xs font-medium ${result.score >= 40 ? 'bg-green-500 bg-opacity-20 text-green-400' : 'bg-red-500 bg-opacity-20 text-red-400'}">
+                            ${result.score}
+                        </span>
+                    </td>
+                    <td class="py-3 px-4">
+                        <span class="px-2 py-1 rounded-full text-xs font-bold text-white grade-${result.grade}">
+                            ${result.grade}
+                        </span>
+                    </td>
+                    <td class="py-3 px-4">${result.academic_session}</td>
+                    <td class="py-3 px-4">${result.semester}</td>
+                `;
+                tbody.appendChild(row);
+            });
+            
+            showModal('resultSelectionModal');
+        });
+}
+
+function toggleResultSelection(resultId, isChecked) {
+    if (isChecked) {
+        selectedResultIds.push(resultId);
+    } else {
+        selectedResultIds = selectedResultIds.filter(id => id !== resultId);
+    }
+}
+
+function previewSelectedResults() {
+    if (selectedResultIds.length === 0) {
+        alert('Please select at least one result');
+        return;
+    }
+    
+    // Fetch the selected results' details for preview
+    fetch('/api/v1/results')
+        .then(response => response.json())
+        .then(results => {
+            const selectedResults = results.filter(r => selectedResultIds.includes(r.id));
+            showPreview('results', selectedResults, 'selected');
+            // Don't close the selection modal - keep it open behind the preview
+        });
+}
+
+function previewResultsByCriteria() {
+    const form = document.getElementById('bulkResultCriteriaForm');
+    const formData = new FormData(form);
+    const criteria = Object.fromEntries(formData.entries());
+    
+    // Remove empty values and convert numeric fields
+    Object.keys(criteria).forEach(key => {
+        if (!criteria[key]) {
+            delete criteria[key];
+        } else if (['min_score', 'max_score'].includes(key)) {
+            criteria[key] = parseFloat(criteria[key]);
+        }
+    });
+    
+    // Fetch results matching criteria
+    fetch('/api/v1/results')
+        .then(response => response.json())
+        .then(results => {
+            let filteredResults = results;
+            
+            // Apply filters
+            if (criteria.course_code) {
+                filteredResults = filteredResults.filter(r => r.course_code === criteria.course_code);
+            }
+            if (criteria.grade) {
+                filteredResults = filteredResults.filter(r => r.grade === criteria.grade);
+            }
+            if (criteria.academic_session) {
+                filteredResults = filteredResults.filter(r => r.academic_session === criteria.academic_session);
+            }
+            if (criteria.semester) {
+                filteredResults = filteredResults.filter(r => r.semester === criteria.semester);
+            }
+            if (criteria.min_score) {
+                filteredResults = filteredResults.filter(r => r.score >= criteria.min_score);
+            }
+            if (criteria.max_score) {
+                filteredResults = filteredResults.filter(r => r.score <= criteria.max_score);
+            }
+            if (criteria.date_from) {
+                const dateFrom = new Date(criteria.date_from);
+                filteredResults = filteredResults.filter(r => new Date(r.date_uploaded) >= dateFrom);
+            }
+            if (criteria.date_to) {
+                const dateTo = new Date(criteria.date_to);
+                dateTo.setHours(23, 59, 59, 999);
+                filteredResults = filteredResults.filter(r => new Date(r.date_uploaded) <= dateTo);
+            }
+            
+            showPreview('results', filteredResults, 'criteria', criteria);
+        });
+}
+
+// Preview Function - Updated to handle both selection and criteria previews
+function showPreview(type, items, selectionType, criteria = {}) {
+    currentPreviewType = type;
+    currentPreviewCriteria = { selectionType, criteria, items: items.map(item => item.id) };
+    
+    const previewCount = document.getElementById('previewCount');
+    const previewTableHead = document.getElementById('previewTableHead');
+    const previewTableBody = document.getElementById('previewTableBody');
+    const previewEmpty = document.getElementById('previewEmpty');
+    const previewModalTitle = document.getElementById('previewModalTitle');
+    const previewSummary = document.getElementById('previewSummary');
+    const confirmBtn = document.getElementById('confirmPreviewDeleteBtn');
+    
+    // Update counts and titles
+    previewCount.textContent = `${items.length} ${type} selected for deletion`;
+    
+    if (selectionType === 'selected') {
+        previewModalTitle.textContent = `Preview Selected ${type.charAt(0).toUpperCase() + type.slice(1)} for Deletion`;
+        previewSummary.textContent = `Review the ${items.length} selected ${type} below before confirming deletion`;
+    } else {
+        previewModalTitle.textContent = `Preview ${type.charAt(0).toUpperCase() + type.slice(1)} Matching Criteria`;
+        previewSummary.textContent = `Review the ${items.length} ${type} matching your criteria below before confirming deletion`;
+    }
+    
+    // Set button color based on type
+    confirmBtn.className = confirmBtn.className.replace(/bg-(red|yellow|green|blue|purple)-600/, 
+        type === 'students' ? 'bg-red-600' : 'bg-yellow-600');
+    confirmBtn.className = confirmBtn.className.replace(/hover:bg-(red|yellow|green|blue|purple)-700/, 
+        type === 'students' ? 'hover:bg-red-700' : 'hover:bg-yellow-700');
+    
+    // Show/hide empty state
+    if (items.length === 0) {
+        previewTableHead.innerHTML = '';
+        previewTableBody.innerHTML = '';
+        previewEmpty.classList.remove('hidden');
+        confirmBtn.disabled = true;
+        confirmBtn.className = confirmBtn.className.replace(/bg-(red|yellow)-600/, 'bg-gray-500') + ' cursor-not-allowed';
+        previewSummary.textContent = 'No items match the selected criteria';
+    } else {
+        previewEmpty.classList.add('hidden');
+        confirmBtn.disabled = false;
+        
+        // Set table headers
+        if (type === 'students') {
+            previewTableHead.innerHTML = `
+                <tr class="border-b border-gray-700">
+                    <th class="py-3 px-4 text-left font-semibold text-gray-300">Matric No</th>
+                    <th class="py-3 px-4 text-left font-semibold text-gray-300">Name</th>
+                    <th class="py-3 px-4 text-left font-semibold text-gray-300">Department</th>
+                    <th class="py-3 px-4 text-left font-semibold text-gray-300">School</th>
+                    <th class="py-3 px-4 text-left font-semibold text-gray-300">Results Count</th>
+                </tr>
+            `;
+        } else {
+            previewTableHead.innerHTML = `
+                <tr class="border-b border-gray-700">
+                    <th class="py-3 px-4 text-left font-semibold text-gray-300">Matric No</th>
+                    <th class="py-3 px-4 text-left font-semibold text-gray-300">Course Code</th>
+                    <th class="py-3 px-4 text-left font-semibold text-gray-300">Course Title</th>
+                    <th class="py-3 px-4 text-left font-semibold text-gray-300">Score</th>
+                    <th class="py-3 px-4 text-left font-semibold text-gray-300">Grade</th>
+                    <th class="py-3 px-4 text-left font-semibold text-gray-300">Session</th>
+                </tr>
+            `;
+        }
+        
+        // Populate table body
+        previewTableBody.innerHTML = '';
+        items.forEach(item => {
+            const row = document.createElement('tr');
+            row.className = 'border-b border-gray-700 hover:bg-gray-750';
+            
+            if (type === 'students') {
+                row.innerHTML = `
+                    <td class="py-3 px-4">${item.matric_no}</td>
+                    <td class="py-3 px-4">${item.full_name}</td>
+                    <td class="py-3 px-4">${item.department}</td>
+                    <td class="py-3 px-4">${item.school || 'N/A'}</td>
+                    <td class="py-3 px-4">
+                        <span class="bg-blue-500 bg-opacity-20 text-blue-400 px-2 py-1 rounded-full text-xs">
+                            ${item.results_count || 0}
+                        </span>
+                    </td>
+                `;
+            } else {
+                row.innerHTML = `
+                    <td class="py-3 px-4">${item.matric_no}</td>
+                    <td class="py-3 px-4">${item.course_code}</td>
+                    <td class="py-3 px-4">${item.course_title || 'N/A'}</td>
+                    <td class="py-3 px-4">
+                        <span class="px-2 py-1 rounded-full text-xs font-medium ${item.score >= 40 ? 'bg-green-500 bg-opacity-20 text-green-400' : 'bg-red-500 bg-opacity-20 text-red-400'}">
+                            ${item.score}
+                        </span>
+                    </td>
+                    <td class="py-3 px-4">
+                        <span class="px-2 py-1 rounded-full text-xs font-bold text-white grade-${item.grade}">
+                            ${item.grade}
+                        </span>
+                    </td>
+                    <td class="py-3 px-4">${item.academic_session}</td>
+                `;
+            }
+            previewTableBody.appendChild(row);
+        });
+    }
+    
+    // Set confirm button action
+    confirmBtn.onclick = () => {
+        if (currentPreviewType === 'students') {
+            if (currentPreviewCriteria.selectionType === 'selected') {
+                deleteStudents(currentPreviewCriteria.items);
+                // Close both modals after confirmation
+                closeStudentSelectionModal();
+            } else {
+                deleteStudentsByCriteria(currentPreviewCriteria.criteria);
+            }
+        } else {
+            if (currentPreviewCriteria.selectionType === 'selected') {
+                deleteResults(currentPreviewCriteria.items);
+                // Close both modals after confirmation
+                closeResultSelectionModal();
+            } else {
+                deleteResultsByCriteria(currentPreviewCriteria.criteria);
+            }
+        }
+        closePreviewModal();
+    };
+    
+    // Show preview modal with higher z-index to appear on top
+    showPreviewModal('previewModal');
+}
+
+// Delete functions (modified to accept parameters)
+function deleteStudents(studentIds) {
+    fetch('/admin/bulk-delete/students', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            student_ids: studentIds,
+            delete_type: 'selected'
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(`Success: ${data.message}`);
+            selectedStudentIds = [];
+            location.reload();
+        } else {
+            alert(`Error: ${data.error}`);
+        }
+    })
+    .catch(error => {
+        alert('Error deleting students');
+        console.error('Error:', error);
+    });
+}
+
+function deleteStudentsByCriteria(criteria) {
+    fetch('/admin/bulk-delete/students', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            delete_type: 'by_criteria',
+            criteria: criteria
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(`Success: ${data.message}`);
+            location.reload();
+        } else {
+            alert(`Error: ${data.error}`);
+        }
+    })
+    .catch(error => {
+        alert('Error deleting students');
+        console.error('Error:', error);
+    });
+}
+
+function deleteResults(resultIds) {
+    fetch('/admin/bulk-delete/results', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            result_ids: resultIds,
+            delete_type: 'selected'
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(`Success: ${data.message}`);
+            selectedResultIds = [];
+            location.reload();
+        } else {
+            alert(`Error: ${data.error}`);
+        }
+    })
+    .catch(error => {
+        alert('Error deleting results');
+        console.error('Error:', error);
+    });
+}
+
+function deleteResultsByCriteria(criteria) {
+    fetch('/admin/bulk-delete/results', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            delete_type: 'by_criteria',
+            criteria: criteria
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(`Success: ${data.message}`);
+            location.reload();
+        } else {
+            alert(`Error: ${data.error}`);
+        }
+    })
+    .catch(error => {
+        alert('Error deleting results');
+        console.error('Error:', error);
+    });
+}
+
+// Select all functionality
+document.getElementById('selectAllStudents')?.addEventListener('change', function(e) {
+    const checkboxes = document.querySelectorAll('#studentSelectionBody input[type="checkbox"]');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = e.target.checked;
+        toggleStudentSelection(parseInt(checkbox.value), e.target.checked);
+    });
+});
+
+document.getElementById('selectAllResults')?.addEventListener('change', function(e) {
+    const checkboxes = document.querySelectorAll('#resultSelectionBody input[type="checkbox"]');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = e.target.checked;
+        toggleResultSelection(parseInt(checkbox.value), e.target.checked);
+    });
+});
+
+// Grade badge styling
+const style = document.createElement('style');
+style.textContent = `
+    .grade-A { background-color: #10b981; }
+    .grade-B { background-color: #3b82f6; }
+    .grade-C { background-color: #8b5cf6; }
+    .grade-D { background-color: #f59e0b; }
+    .grade-E { background-color: #f97316; }
+    .grade-F { background-color: #ef4444; }
+`;
+document.head.appendChild(style);
+</script>
+{% endblock %}

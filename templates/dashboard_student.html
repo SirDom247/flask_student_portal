@@ -8,8 +8,7 @@
         <!-- Header Section -->
         <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-8">
             <div class="text-center lg:text-left mb-6 lg:mb-0">
-                <h1 class="text-4xl font-bold text-white mb-2">Student Dashboard</h1>
-                <p class="text-gray-400 text-lg">Welcome back, {{ current_user.full_name }} 👋</p>
+                <h1 class="text-2xl font-bold text-green-700 mb-2">Welcome 👋 <br> <span class="text-4xl font-bold text-white mb-2" >{{ current_user.full_name }} </span> </h1>
             </div>
             <div class="bg-gradient-to-r from-green-600 to-emerald-700 text-white px-6 py-3 rounded-xl font-semibold">
                 <i class="fas fa-id-card mr-2"></i>Matric: {{ current_user.matric_no }}
@@ -79,7 +78,13 @@
                     <div class="flex items-center justify-between">
                         <div>
                             <p class="text-blue-200 text-sm">Courses Taken</p>
-                            <p class="text-4xl font-bold text-white">{{ results|length if results else 0 }}</p>
+                            <p class="text-4xl font-bold text-white">
+                                {% if results_pagination %}
+                                    {{ results_pagination.total }}
+                                {% else %}
+                                    {{ results|length if results else 0 }}
+                                {% endif %}
+                            </p>
                         </div>
                         <div class="w-12 h-12 bg-blue-500 bg-opacity-30 rounded-xl flex items-center justify-center">
                             <i class="fas fa-book text-blue-300 text-xl"></i>
@@ -93,8 +98,8 @@
                         <div>
                             <p class="text-purple-200 text-sm">Average Score</p>
                             <p class="text-4xl font-bold text-white">
-                                {% if results %}
-                                    {{ "%.1f"|format(results|map(attribute='score')|sum / results|length) }}%
+                                {% if results and average_score is defined and average_score > 0 %}
+                                    {{ "%.1f"|format(average_score) }}%
                                 {% else %}
                                     N/A
                                 {% endif %}
@@ -129,50 +134,128 @@
             <!-- Results Table -->
             <div class="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl border border-gray-700 lg:col-span-2">
                 <div class="p-6 border-b border-gray-700">
-                    <h2 class="text-2xl font-bold text-white flex items-center">
-                        <i class="fas fa-chart-bar text-green-400 mr-3"></i>
-                        Academic Results
-                    </h2>
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-2xl font-bold text-white flex items-center">
+                            <i class="fas fa-chart-bar text-green-400 mr-3"></i>
+                            Academic Results
+                        </h2>
+                        <div class="flex items-center space-x-4">
+                            {% if results_pagination %}
+                            <span class="bg-purple-500 bg-opacity-20 text-purple-400 px-3 py-1 rounded-full text-sm font-medium">
+                                Page {{ results_pagination.page }} of {{ results_pagination.pages }}
+                            </span>
+                            {% endif %}
+                            <span class="bg-green-500 bg-opacity-20 text-green-400 px-3 py-1 rounded-full text-sm font-medium">
+                                {% if results_pagination %}
+                                    {{ results_pagination.total }} total results
+                                {% else %}
+                                    {{ results|length }} results
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
                 </div>
+
+                <!-- Results count and per page selector -->
+                {% if results_pagination %}
+                <div class="flex items-center justify-between p-6 border-b border-gray-700">
+                    <div class="flex items-center space-x-4">
+                        <span class="text-gray-400 text-sm">Results per page:</span>
+                        <select onchange="updatePerPage(this.value)" 
+                                class="bg-gray-700 border border-gray-600 rounded-lg px-3 py-1 text-white text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+                            <option value="5" {% if per_page == 5 %}selected{% endif %}>5</option>
+                            <option value="10" {% if per_page == 10 %}selected{% endif %}>10</option>
+                            <option value="20" {% if per_page == 20 %}selected{% endif %}>20</option>
+                            <option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
+                        </select>
+                    </div>
+                    <div class="text-gray-400 text-sm">
+                        {% if results_pagination %}
+                        Showing {{ results_pagination.first }} to {{ results_pagination.last }} of {{ results_pagination.total }} results
+                        {% else %}
+                        Showing {{ results|length }} results
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+
                 <div class="overflow-x-auto">
-                    <table class="w-full text-white">
+                    <table class="w-full text-white print:text-black">
                         <thead>
-                            <tr class="border-b border-gray-700">
-                                <th class="py-4 px-4 text-left font-semibold text-gray-300">Course</th>
-                                <th class="py-4 px-4 text-left font-semibold text-gray-300">Title</th>
-                                <th class="py-4 px-4 text-left font-semibold text-gray-300">Credits</th>
-                                <th class="py-4 px-4 text-left font-semibold text-gray-300">Score</th>
-                                <th class="py-4 px-4 text-left font-semibold text-gray-300">Grade</th>
-                                <th class="py-4 px-4 text-left font-semibold text-gray-300">Status</th>
+                            <tr class="border-b border-gray-700 print:bg-blue-600 print:text-white">
+                                <th class="py-4 px-4 text-left font-semibold text-gray-300 print:text-white cursor-pointer hover:bg-gray-750 transition-colors duration-200" onclick="sortTable(0)">
+                                    <div class="flex items-center justify-between">
+                                        <span>Course</span>
+                                        <i class="fas fa-sort text-gray-400 ml-2"></i>
+                                    </div>
+                                </th>
+                                <th class="py-4 px-4 text-left font-semibold text-gray-300 print:text-white cursor-pointer hover:bg-gray-750 transition-colors duration-200" onclick="sortTable(1)">
+                                    <div class="flex items-center justify-between">
+                                        <span>Title</span>
+                                        <i class="fas fa-sort text-gray-400 ml-2"></i>
+                                    </div>
+                                </th>
+                                <th class="py-4 px-4 text-left font-semibold text-gray-300 print:text-white cursor-pointer hover:bg-gray-750 transition-colors duration-200" onclick="sortTable(2)">
+                                    <div class="flex items-center justify-between">
+                                        <span>Credits</span>
+                                        <i class="fas fa-sort text-gray-400 ml-2"></i>
+                                    </div>
+                                </th>
+                                <th class="py-4 px-4 text-left font-semibold text-gray-300 print:text-white cursor-pointer hover:bg-gray-750 transition-colors duration-200" onclick="sortTable(3)">
+                                    <div class="flex items-center justify-between">
+                                        <span>Score</span>
+                                        <i class="fas fa-sort text-gray-400 ml-2"></i>
+                                    </div>
+                                </th>
+                                <th class="py-4 px-4 text-left font-semibold text-gray-300 print:text-white cursor-pointer hover:bg-gray-750 transition-colors duration-200" onclick="sortTable(4)">
+                                    <div class="flex items-center justify-between">
+                                        <span>Grade</span>
+                                        <i class="fas fa-sort text-gray-400 ml-2"></i>
+                                    </div>
+                                </th>
+                                <th class="py-4 px-4 text-left font-semibold text-gray-300 print:text-white cursor-pointer hover:bg-gray-750 transition-colors duration-200" onclick="sortTable(5)">
+                                    <div class="flex items-center justify-between">
+                                        <span>Status</span>
+                                        <i class="fas fa-sort text-gray-400 ml-2"></i>
+                                    </div>
+                                </th>
                             </tr>
                         </thead>
                         <tbody>
                             {% if results %}
                                 {% for r in results %}
-                                <tr class="border-b border-gray-700 hover:bg-gray-750 transition-colors duration-200">
-                                    <td class="py-4 px-4">
-                                        <div class="font-mono text-green-300">{{ r.course_code }}</div>
+                                <tr class="border-b border-gray-700 hover:bg-gray-750 transition-colors duration-200 print:border-gray-400">
+                                    <td class="py-4 px-4 print:text-black">
+                                        <div class="font-mono text-green-300 print:text-black">{{ r.course_code }}</div>
                                     </td>
-                                    <td class="py-4 px-4">
-                                        <div class="text-sm text-gray-300">{{ r.course_title }}</div>
+                                    <td class="py-4 px-4 print:text-black">
+                                        <div class="text-sm text-gray-300 print:text-black">{{ r.course_title }}</div>
                                     </td>
-                                    <td class="py-4 px-4">
-                                        <span class="px-2 py-1 bg-blue-500 bg-opacity-20 text-blue-400 rounded text-sm font-medium">
+                                    <td class="py-4 px-4 print:text-black">
+                                        <span class="px-2 py-1 bg-blue-500 bg-opacity-20 text-blue-400 rounded text-sm font-medium print:bg-blue-100 print:text-blue-800 print:border print:border-blue-300">
                                             {{ r.credit_unit }}
                                         </span>
                                     </td>
-                                    <td class="py-4 px-4">
-                                        <span class="px-3 py-1 rounded-full text-sm font-medium {% if r.score >= 50 %}bg-green-500 bg-opacity-20 text-green-400{% else %}bg-red-500 bg-opacity-20 text-red-400{% endif %}">
+                                    <td class="py-4 px-4 print:text-black">
+                                        <span class="px-3 py-1 rounded-full text-sm font-medium {% if r.score >= 50 %}bg-green-500 bg-opacity-20 text-green-400 print:bg-green-100 print:text-green-800 print:border print:border-green-300{% else %}bg-red-500 bg-opacity-20 text-red-400 print:bg-red-100 print:text-red-800 print:border print:border-red-300{% endif %}">
                                             {{ r.score }}
                                         </span>
                                     </td>
-                                    <td class="py-4 px-4">
-                                        <span class="px-3 py-1 rounded-full text-sm font-medium {% if r.grade in ['A','B','C'] %}bg-green-500 bg-opacity-20 text-green-400{% else %}bg-red-500 bg-opacity-20 text-red-400{% endif %}">
+                                    <td class="py-4 px-4 print:text-black">
+                                        {% set grade_color = {
+                                            'A': 'bg-green-500 bg-opacity-20 text-green-400 print:bg-green-100 print:text-green-800 print:border print:border-green-300',
+                                            'B': 'bg-blue-500 bg-opacity-20 text-blue-400 print:bg-blue-100 print:text-blue-800 print:border print:border-blue-300',
+                                            'C': 'bg-purple-500 bg-opacity-20 text-purple-400 print:bg-purple-100 print:text-purple-800 print:border print:border-purple-300',
+                                            'D': 'bg-yellow-500 bg-opacity-20 text-yellow-400 print:bg-yellow-100 print:text-yellow-800 print:border print:border-yellow-300',
+                                            'E': 'bg-pink-500 bg-opacity-20 text-pink-400 print:bg-pink-100 print:text-pink-800 print:border print:border-pink-300',
+                                            'F': 'bg-red-500 bg-opacity-20 text-red-400 print:bg-red-100 print:text-red-800 print:border print:border-red-300'
+                                        } %}
+                                        <span class="px-3 py-1 rounded-full text-sm font-medium {{ grade_color.get(r.grade, 'bg-gray-500 bg-opacity-20 text-gray-400 print:bg-gray-100 print:text-gray-800 print:border print:border-gray-300') }}">
                                             {{ r.grade }}
                                         </span>
                                     </td>
-                                    <td class="py-4 px-4">
-                                        <span class="px-2 py-1 rounded text-xs font-medium {% if r.remark == 'Excellent' %}bg-green-500 bg-opacity-20 text-green-400{% elif r.remark == 'Fail' %}bg-red-500 bg-opacity-20 text-red-400{% else %}bg-yellow-500 bg-opacity-20 text-yellow-400{% endif %}">
+                                    <td class="py-4 px-4 print:text-black">
+                                        <span class="px-2 py-1 rounded text-xs font-medium {% if r.remark == 'Excellent' %}bg-green-500 bg-opacity-20 text-green-400 print:bg-green-100 print:text-green-800 print:border print:border-green-300{% elif r.remark == 'Fail' %}bg-red-500 bg-opacity-20 text-red-400 print:bg-red-100 print:text-red-800 print:border print:border-red-300{% else %}bg-yellow-500 bg-opacity-20 text-yellow-400 print:bg-yellow-100 print:text-yellow-800 print:border print:border-yellow-300{% endif %}">
                                             {{ r.remark }}
                                         </span>
                                     </td>
@@ -180,7 +263,7 @@
                                 {% endfor %}
                             {% else %}
                                 <tr>
-                                    <td colspan="6" class="py-8 text-center text-gray-400">
+                                    <td colspan="6" class="py-8 text-center text-gray-400 print:text-black">
                                         <i class="fas fa-inbox text-3xl mb-2 opacity-50"></i>
                                         <p>No results available yet.</p>
                                     </td>
@@ -189,6 +272,64 @@
                         </tbody>
                     </table>
                 </div>
+
+                <!-- Results Pagination -->
+                {% if results_pagination and results_pagination.pages > 1 %}
+                <div class="mt-6 flex items-center justify-between border-t border-gray-700 pt-6 p-6">
+                    <div class="text-gray-400 text-sm">
+                        Showing {{ results_pagination.first }} to {{ results_pagination.last }} of {{ results_pagination.total }} results
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <!-- Previous Button -->
+                        {% if results_pagination.has_prev %}
+                        <a href="{{ build_pagination_url(results_pagination.prev_num, per_page) }}" 
+                           class="flex items-center px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-gray-300 hover:bg-gray-600 transition-all duration-300">
+                            <i class="fas fa-chevron-left mr-2 text-sm"></i>
+                            Previous
+                        </a>
+                        {% else %}
+                        <span class="flex items-center px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-gray-500 cursor-not-allowed">
+                            <i class="fas fa-chevron-left mr-2 text-sm"></i>
+                            Previous
+                        </span>
+                        {% endif %}
+
+                        <!-- Page Numbers -->
+                        <div class="flex items-center space-x-1">
+                            {% for page_num in results_pagination.iter_pages(left_edge=1, left_current=2, right_current=2, right_edge=1) %}
+                                {% if page_num %}
+                                    {% if page_num == results_pagination.page %}
+                                    <span class="px-3 py-1 bg-green-600 text-white rounded-lg text-sm font-medium">
+                                        {{ page_num }}
+                                    </span>
+                                    {% else %}
+                                    <a href="{{ build_pagination_url(page_num, per_page) }}" 
+                                       class="px-3 py-1 bg-gray-700 text-gray-300 rounded-lg text-sm hover:bg-gray-600 transition-all duration-300">
+                                        {{ page_num }}
+                                    </a>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="px-2 text-gray-500">...</span>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+
+                        <!-- Next Button -->
+                        {% if results_pagination.has_next %}
+                        <a href="{{ build_pagination_url(results_pagination.next_num, per_page) }}" 
+                           class="flex items-center px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-gray-300 hover:bg-gray-600 transition-all duration-300">
+                            Next
+                            <i class="fas fa-chevron-right ml-2 text-sm"></i>
+                        </a>
+                        {% else %}
+                        <span class="flex items-center px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-gray-500 cursor-not-allowed">
+                            Next
+                            <i class="fas fa-chevron-right ml-2 text-sm"></i>
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
             </div>
 
             <!-- Charts and Analytics Sidebar -->
@@ -214,7 +355,7 @@
                     </h3>
                     <div class="space-y-4">
                         {% if results %}
-                            {% set passed = results|selectattr('score', '>=', 50)|list|length %}
+                            {% set passed = results|selectattr('score', '>=', 40)|list|length %}
                             {% set total = results|length %}
                             {% set pass_rate = (passed / total * 100)|round(1) if total > 0 else 0 %}
                             
@@ -313,6 +454,7 @@
     </div>
 </div>
 
+
 <!-- Include Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <!-- Include jsPDF for PDF generation -->
@@ -327,6 +469,86 @@
 #profilePhoto {
     background: linear-gradient(135deg, #10b981, #059669);
 }
+
+/* Print Styles */
+@media print {
+    .no-print, .print\:hidden {
+        display: none !important;
+    }
+    
+    body {
+        background: white !important;
+        color: black !important;
+        font-size: 12pt;
+    }
+    
+    .bg-gradient-to-br {
+        background: white !important;
+        border: 1px solid #ddd !important;
+        box-shadow: none !important;
+    }
+    
+    .text-white, .text-gray-300, .text-gray-400 {
+        color: black !important;
+    }
+    
+    .border-gray-700 {
+        border-color: #ddd !important;
+    }
+    
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    th {
+        background: #2563eb !important;
+        color: white !important;
+        padding: 8px 12px;
+        border: 1px solid #1d4ed8;
+    }
+    
+    td {
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        color: black !important;
+    }
+    
+    tr:nth-child(even) {
+        background-color: #f9fafb;
+    }
+    
+    /* Hide action buttons and sidebar in print */
+    .lg\:col-span-2 {
+        width: 100% !important;
+    }
+    
+    .space-y-6 > * {
+        display: none !important;
+    }
+    
+    /* Show only results table in full width */
+    .grid-cols-1 {
+        grid-template-columns: 1fr !important;
+    }
+    
+    .lg\:grid-cols-3 {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+/* Chart.js legend text color - Force white text */
+.chartjs-legend .chartjs-legend-item {
+    color: white !important;
+}
+
+.chartjs-legend-text {
+    color: white !important;
+}
+
+.chartjs-legend li span {
+    color: white !important;
+}
 </style>
 
 <script>
@@ -337,15 +559,96 @@ document.addEventListener('DOMContentLoaded', function() {
     {% endif %}
 });
 
+// Table sorting functionality
+let currentSortColumn = -1;
+let sortDirection = 1; // 1 for ascending, -1 for descending
+
+function sortTable(columnIndex) {
+    const table = document.querySelector('table');
+    const tbody = table.querySelector('tbody');
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    const headers = table.querySelectorAll('th');
+    
+    // Update sort direction
+    if (currentSortColumn === columnIndex) {
+        sortDirection = -sortDirection;
+    } else {
+        currentSortColumn = columnIndex;
+        sortDirection = 1;
+    }
+    
+    // Remove sort indicators from all headers
+    headers.forEach(header => {
+        const icon = header.querySelector('i');
+        if (icon) {
+            icon.className = 'fas fa-sort text-gray-400 ml-2';
+        }
+    });
+    
+    // Add sort indicator to current header
+    const currentHeader = headers[columnIndex];
+    const currentIcon = currentHeader.querySelector('i');
+    if (currentIcon) {
+        currentIcon.className = sortDirection === 1 
+            ? 'fas fa-sort-up text-green-400 ml-2' 
+            : 'fas fa-sort-down text-green-400 ml-2';
+    }
+    
+    // Sort rows
+    rows.sort((a, b) => {
+        const aCell = a.cells[columnIndex];
+        const bCell = b.cells[columnIndex];
+        
+        let aValue = aCell.textContent.trim();
+        let bValue = bCell.textContent.trim();
+        
+        // Handle numeric sorting for credits and scores
+        if (columnIndex === 2 || columnIndex === 3) { // Credits or Score columns
+            aValue = parseFloat(aValue) || 0;
+            bValue = parseFloat(bValue) || 0;
+        }
+        
+        // Handle grade sorting (A, B, C, D, E, F)
+        if (columnIndex === 4) { // Grade column
+            const gradeOrder = {'A': 6, 'B': 5, 'C': 4, 'D': 3, 'E': 2, 'F': 1};
+            aValue = gradeOrder[aValue] || 0;
+            bValue = gradeOrder[bValue] || 0;
+        }
+        
+        if (aValue < bValue) return -1 * sortDirection;
+        if (aValue > bValue) return 1 * sortDirection;
+        return 0;
+    });
+    
+    // Reappend sorted rows
+    rows.forEach(row => tbody.appendChild(row));
+    
+    // Show notification
+    showNotification(`Sorted by ${currentHeader.textContent.trim()} ${sortDirection === 1 ? 'ascending' : 'descending'}`, 'info');
+}
+
 function initializeGradeChart() {
+    // Grade color mapping
+    const gradeColors = {
+        'A': '#10b981', // Green
+        'B': '#3b82f6', // Blue
+        'C': '#8b5cf6', // Purple
+        'D': '#f59e0b', // Yellow
+        'E': '#ec4899', // Pink/Magenta
+        'F': '#ef4444'  // Red
+    };
+
     const gradeLabels = [{% for r in results %}'{{ r.grade }}',{% endfor %}];
     const gradeCounts = {};
     gradeLabels.forEach(function(g){
         gradeCounts[g] = (gradeCounts[g] || 0) + 1;
     });
     
-    const labels = Object.keys(gradeCounts);
-    const data = Object.values(gradeCounts);
+    // Sort grades in order A, B, C, D, E, F
+    const sortedGrades = ['A', 'B', 'C', 'D', 'E', 'F'].filter(grade => gradeCounts[grade]);
+    const labels = sortedGrades;
+    const data = sortedGrades.map(grade => gradeCounts[grade]);
+    const backgroundColors = sortedGrades.map(grade => gradeColors[grade]);
     
     const ctx = document.getElementById('gradeChart').getContext('2d');
     new Chart(ctx, {
@@ -354,9 +657,7 @@ function initializeGradeChart() {
             labels: labels,
             datasets: [{
                 data: data,
-                backgroundColor: [
-                    '#10b981', '#34d399', '#6ee7b7', '#fbbf24', '#ef4444'
-                ],
+                backgroundColor: backgroundColors,
                 borderWidth: 2,
                 borderColor: '#1f2937'
             }]
@@ -368,9 +669,44 @@ function initializeGradeChart() {
                 legend: {
                     position: 'bottom',
                     labels: {
-                        color: '#d1d5db',
+                        color: '#ffffff', // White text for legend
                         font: {
-                            size: 12
+                            size: 12,
+                            weight: '500'
+                        },
+                        padding: 15,
+                        generateLabels: function(chart) {
+                            const data = chart.data;
+                            if (data.labels.length && data.datasets.length) {
+                                return data.labels.map((label, i) => {
+                                    const value = data.datasets[0].data[i];
+                                    return {
+                                        text: `${label}: ${value} course${value !== 1 ? 's' : ''}`,
+                                        fillStyle: data.datasets[0].backgroundColor[i],
+                                        strokeStyle: data.datasets[0].borderColor,
+                                        lineWidth: data.datasets[0].borderWidth,
+                                        hidden: false,
+                                        index: i
+                                    };
+                                });
+                            }
+                            return [];
+                        }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    titleColor: '#ffffff',
+                    bodyColor: '#ffffff',
+                    borderColor: '#374151',
+                    borderWidth: 1,
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.raw || 0;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = Math.round((value / total) * 100);
+                            return `${label}: ${value} course${value !== 1 ? 's' : ''} (${percentage}%)`;
                         }
                     }
                 }
@@ -378,6 +714,30 @@ function initializeGradeChart() {
             cutout: '60%'
         }
     });
+
+    // Force white text for legend items after chart is rendered
+    setTimeout(() => {
+        const legendItems = document.querySelectorAll('.chartjs-legend .chartjs-legend-item, .chartjs-legend-text');
+        legendItems.forEach(item => {
+            item.style.color = '#ffffff !important';
+        });
+        
+        // Also target any text elements in the legend
+        const textElements = document.querySelectorAll('.chartjs-legend *');
+        textElements.forEach(element => {
+            if (element.tagName === 'SPAN' || element.tagName === 'LI') {
+                element.style.color = '#ffffff !important';
+            }
+        });
+    }, 100);
+}
+
+// Update items per page
+function updatePerPage(value) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('per_page', value);
+    url.searchParams.set('page', 1); // Reset to first page
+    window.location.href = url.toString();
 }
 
 // Photo Upload Functions
@@ -425,33 +785,45 @@ async function downloadResultsPDF() {
         
         doc.setTextColor(255, 255, 255);
         doc.setFontSize(20);
-        doc.text('Fderal College of Education (Technical) Omoku', 105, 15, { align: 'center' });
+        doc.text('Federal College of Education (Technical) Omoku', 105, 15, { align: 'center' });
         doc.text('Professional Diploma in Education', 105, 25, { align: 'center' });
         doc.text('Academic Transcript', 105, 35, { align: 'center' });
+        
+        // Student info
         doc.setTextColor(0, 0, 0);
         doc.setFontSize(12);
-        doc.text(`Student: ${'{{ current_user.full_name }}'}`, 20, 60);
-        doc.text(`Matric No: ${'{{ current_user.matric_no }}'}`, 20, 70);
-        doc.text(`CGPA: ${'{% if results and results[0].semester_cgpa %}{{ "%.2f"|format(results[0].semester_cgpa) }}{% else %}N/A{% endif %}'}`, 20, 80);
+        doc.text(`Student: {{ current_user.full_name }}`, 20, 60);
+        doc.text(`Matric No: {{ current_user.matric_no }}`, 20, 70);
+        doc.text(`CGPA: {% if results and results[0].semester_cgpa %}{{ "%.2f"|format(results[0].semester_cgpa) }}{% else %}N/A{% endif %}`, 20, 80);
+        doc.text(`Date: ${new Date().toLocaleDateString()}`, 20, 90);
         
-        // Add results table
-        let yPosition = 100;
-        doc.text('Course Code', 20, yPosition);
-        doc.text('Course Title', 50, yPosition);
-        doc.text('Score', 140, yPosition);
-        doc.text('Grade', 160, yPosition);
-        doc.text('Status', 180, yPosition);
+        // Add results table header
+        let yPosition = 110;
+        doc.setFillColor(59, 130, 246);
+        doc.rect(20, yPosition, 170, 10, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.text('Course Code', 25, yPosition + 7);
+        doc.text('Course Title', 60, yPosition + 7);
+        doc.text('Credits', 130, yPosition + 7);
+        doc.text('Score', 150, yPosition + 7);
+        doc.text('Grade', 165, yPosition + 7);
+        doc.text('Status', 180, yPosition + 7);
         
         yPosition += 10;
-        doc.line(20, yPosition, 190, yPosition);
+        doc.setTextColor(0, 0, 0);
         
         {% if results %}
             {% for r in results %}
             yPosition += 10;
-            doc.text('{{ r.course_code }}', 20, yPosition);
-            doc.text('{{ r.course_title[:25] }}{% if r.course_title|length > 25 %}...{% endif %}', 50, yPosition);
-            doc.text('{{ r.score }}', 140, yPosition);
-            doc.text('{{ r.grade }}', 160, yPosition);
+            if (yPosition > 270) {
+                doc.addPage();
+                yPosition = 20;
+            }
+            doc.text('{{ r.course_code }}', 25, yPosition);
+            doc.text('{{ r.course_title[:30] }}{% if r.course_title|length > 30 %}...{% endif %}', 60, yPosition);
+            doc.text('{{ r.credit_unit }}', 130, yPosition);
+            doc.text('{{ r.score }}', 150, yPosition);
+            doc.text('{{ r.grade }}', 165, yPosition);
             doc.text('{{ r.remark }}', 180, yPosition);
             {% endfor %}
         {% endif %}
@@ -525,30 +897,4 @@ setInterval(() => {
     window.location.reload();
 }, 300000);
 </script>
-
-<style>
-@media print {
-    .no-print {
-        display: none !important;
-    }
-    
-    body {
-        background: white !important;
-        color: black !important;
-    }
-    
-    .bg-gradient-to-br {
-        background: white !important;
-        border: 1px solid #ddd !important;
-    }
-    
-    .text-white {
-        color: black !important;
-    }
-    
-    .text-gray-400 {
-        color: #666 !important;
-    }
-}
-</style>
 {% endblock %}

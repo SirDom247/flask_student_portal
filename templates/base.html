@@ -17,6 +17,9 @@
         .backdrop-blur-sm {
             backdrop-filter: blur(8px);
         }
+        .dropdown:hover .dropdown-menu {
+            display: block;
+        }
     </style>
 </head>
 <body class="bg-gradient-to-br from-gray-900 via-slate-900 to-black min-h-screen flex flex-col">
@@ -27,26 +30,88 @@
             <div class="w-8 h-8 bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg flex items-center justify-center">
                 <i class="fas fa-graduation-cap text-white text-sm"></i>
             </div>
-            <span class="font-bold text-lg bg-gradient-to-r from-green-400 to-emerald-500 bg-clip-text text-transparent">FCE(T) OMOKU PDE Portal</span>
+            <span class="font-bold text-2xl bg-gradient-to-r from-green-400 to-emerald-500 bg-clip-text text-transparent">Students Results Portal</span>
         </div>
         <div class="flex items-center space-x-4">
             {% if current_user.is_authenticated %}
-                <!-- Logged-in user -->
-                <span class="hidden sm:inline text-gray-300">Welcome, {{ current_user.username }}</span>
-                {% if current_user.role == 'student' %}
-                    <a href="{{ url_for('dashboard_student') }}" class="px-4 py-2 hover:bg-gray-700 rounded-lg transition text-green-400">
-                        <i class="fas fa-tachometer-alt mr-2"></i>Dashboard
-                    </a>
-                {% elif current_user.role == 'officer' %}
-                    <a href="{{ url_for('dashboard_officer') }}" class="px-4 py-2 hover:bg-gray-700 rounded-lg transition text-green-400">
-                        <i class="fas fa-tachometer-alt mr-2"></i>Dashboard
+                <!-- User Dropdown -->
+                <div class="relative dropdown">
+                    <button class="flex items-center space-x-2 px-4 py-2 hover:bg-gray-700 rounded-lg transition text-green-400">
+                        <div class="w-8 h-8 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full flex items-center justify-center">
+                            <i class="fas fa-user text-white text-sm"></i>
+                        </div>
+                        <span class="hidden sm:inline">{{ current_user.username }}</span>
+                        <i class="fas fa-chevron-down text-xs"></i>
+                    </button>
+                    <div class="dropdown-menu absolute right-0 mt-2 w-48 bg-gray-800 border border-gray-700 rounded-lg shadow-xl hidden z-50">
+                        <!-- User Info -->
+                        <div class="px-4 py-3 border-b border-gray-700">
+                            <p class="text-white font-semibold text-sm">{{ current_user.full_name }}</p>
+                            <p class="text-gray-400 text-xs">{{ current_user.email }}</p>
+                            <p class="text-green-400 text-xs mt-1">
+                                {% if current_user.role == 'student' %}
+                                    <i class="fas fa-user-graduate mr-1"></i>Student
+                                {% else %}
+                                    <i class="fas fa-user-tie mr-1"></i>Officer
+                                {% endif %}
+                            </p>
+                        </div>
+                        
+                        <!-- Change Password -->
+                        <button onclick="openChangePasswordModal()" class="w-full text-left px-4 py-3 text-gray-300 hover:bg-gray-700 hover:text-green-400 transition flex items-center">
+                            <i class="fas fa-key mr-3 w-4"></i>
+                            Change Password
+                        </button>
+                        
+                        <!-- Dashboard Links -->
+                        {% if current_user.role == 'student' %}
+                            <a href="{{ url_for('dashboard_student') }}" class="block px-4 py-3 text-gray-300 hover:bg-gray-700 hover:text-green-400 transition flex items-center">
+                                <i class="fas fa-tachometer-alt mr-3 w-4"></i>
+                                Student Dashboard
+                            </a>
+                        {% elif current_user.role == 'officer' %}
+                            <a href="{{ url_for('dashboard_officer') }}" class="block px-4 py-3 text-gray-300 hover:bg-gray-700 hover:text-green-400 transition flex items-center">
+                                <i class="fas fa-tachometer-alt mr-3 w-4"></i>
+                                Officer Dashboard
+                            </a>
+                        {% endif %}
+                        
+                        <!-- Logout -->
+                        <a href="{{ url_for('logout') }}" class="block px-4 py-3 text-gray-300 hover:bg-gray-700 hover:text-red-400 transition flex items-center border-t border-gray-700">
+                            <i class="fas fa-sign-out-alt mr-3 w-4"></i>
+                            Logout
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Quick Actions for Officers -->
+                {% if current_user.role == 'officer' %}
+                    <!-- Search Dropdown for Officers -->
+                    <div class="relative dropdown">
+                        <button class="px-4 py-2 hover:bg-gray-700 rounded-lg transition text-green-400 flex items-center">
+                            <i class="fas fa-search mr-2"></i>Search
+                            <i class="fas fa-chevron-down ml-1 text-xs"></i>
+                        </button>
+                        <div class="dropdown-menu absolute right-0 mt-2 w-48 bg-gray-800 border border-gray-700 rounded-lg shadow-xl hidden z-50">
+                            <a href="{{ url_for('search_students') }}" class="block px-4 py-3 text-gray-300 hover:bg-gray-700 hover:text-green-400 transition flex items-center">
+                                <i class="fas fa-users mr-3 w-4"></i>
+                                Search Students
+                            </a>
+                            <a href="{{ url_for('search_results') }}" class="block px-4 py-3 text-gray-300 hover:bg-gray-700 hover:text-green-400 transition flex items-center">
+                                <i class="fas fa-chart-bar mr-3 w-4"></i>
+                                Search Results
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Bulk Actions Link - Only for Officers -->
+                    <a href="{{ url_for('bulk_actions_dashboard') }}" class="px-4 py-2 hover:bg-gray-700 rounded-lg transition text-red-400 hover:text-red-300">
+                        <i class="fas fa-trash-alt mr-2"></i>Bulk Actions
                     </a>
                 {% endif %}
-                <a href="{{ url_for('logout') }}" class="bg-gradient-to-r from-green-600 to-emerald-700 text-white px-4 py-2 rounded-lg hover:scale-105 transition-all duration-300">
-                    <i class="fas fa-sign-out-alt mr-2"></i>Logout
-                </a>
+                
             {% else %}
-                <!-- Guest / Public links -->
+                <!-- Guest / Public Navigation -->
                 <a href="{{ url_for('home') }}" class="px-4 py-2 hover:bg-gray-700 rounded-lg transition text-emerald-500 hover:text-white">
                     <i class="fas fa-home mr-2"></i>Home
                 </a>
@@ -94,23 +159,66 @@
         {% endwith %}
     </div>
 
-    <script>
-        // Auto-hide flash messages after 5 seconds
-        setTimeout(() => {
-            const flashes = document.querySelectorAll('.flash');
-            flashes.forEach(f => f.remove());
-        }, 5000);
-    </script>
-
-    <!-- Main content -->
+    <!-- Main Content -->
     <main class="flex-1">
         {% block content %}{% endblock %}
     </main>
+
+    <!-- Change Password Modal -->
+    <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden" id="changePasswordModal">
+        <div class="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl border border-gray-700 max-w-md w-full mx-4">
+            <div class="flex items-center justify-between p-6 border-b border-gray-700">
+                <h3 class="text-xl font-bold text-white">Change Password</h3>
+                <button type="button" onclick="closeChangePasswordModal()" class="text-gray-400 hover:text-white">
+                    <i class="fas fa-times text-lg"></i>
+                </button>
+            </div>
+            
+            <form method="POST" action="{{ url_for('change_student_password') if current_user.role == 'student' else url_for('reset_password') }}" class="p-6 space-y-4">
+                <!-- Current Password -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Current Password</label>
+                    <input type="password" name="current_password" 
+                           class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-300"
+                           required>
+                </div>
+                
+                <!-- New Password -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">New Password</label>
+                    <input type="password" name="new_password" 
+                           class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-300"
+                           required minlength="8">
+                    <p class="text-gray-400 text-xs mt-1">Password must be at least 8 characters long</p>
+                </div>
+                
+                <!-- Confirm New Password -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Confirm New Password</label>
+                    <input type="password" name="confirm_password" 
+                           class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-300"
+                           required>
+                </div>
+                
+                <div class="flex space-x-3 pt-4">
+                    <button type="button" onclick="closeChangePasswordModal()" 
+                            class="flex-1 bg-gray-600 hover:bg-gray-700 text-white py-3 rounded-xl font-semibold transition-all duration-300">
+                        Cancel
+                    </button>
+                    <button type="submit" 
+                            class="flex-1 bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-semibold transition-all duration-300">
+                        Change Password
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <!-- Footer -->
     <footer class="border-t border-gray-800 py-12 bg-gradient-to-b from-gray-900 to-black">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <!-- Institution Info -->
                 <div>
                     <div class="flex items-center space-x-2 mb-4">
                         <div class="w-8 h-8 bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg flex items-center justify-center">
@@ -126,42 +234,57 @@
                     </p>
                 </div>
                 
+                <!-- Academic Resources -->
                 <div>
                     <h4 class="text-white font-semibold mb-4">Academic Resources</h4>
                     <ul class="space-y-2 text-sm text-gray-400">
-                        <li><a href="#" class="hover:text-green-400 transition-colors flex items-center space-x-2">
-                            <i class="fas fa-book w-4"></i>
-                            <span>Course Materials</span>
-                        </a></li>
-                        <li><a href="#" class="hover:text-green-400 transition-colors flex items-center space-x-2">
-                            <i class="fas fa-laptop w-4"></i>
-                            <span>eLearning Portal</span>
-                        </a></li>
-                        <li><a href="#" class="hover:text-green-400 transition-colors flex items-center space-x-2">
-                            <i class="fas fa-chalkboard-teacher w-4"></i>
-                            <span>Teaching Practice</span>
-                        </a></li>
+                        <li>
+                            <a href="#" class="hover:text-green-400 transition-colors flex items-center space-x-2">
+                                <i class="fas fa-book w-4"></i>
+                                <span>Course Materials</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" class="hover:text-green-400 transition-colors flex items-center space-x-2">
+                                <i class="fas fa-laptop w-4"></i>
+                                <span>eLearning Portal</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" class="hover:text-green-400 transition-colors flex items-center space-x-2">
+                                <i class="fas fa-chalkboard-teacher w-4"></i>
+                                <span>Teaching Practice</span>
+                            </a>
+                        </li>
                     </ul>
                 </div>
                 
+                <!-- Student Support -->
                 <div>
                     <h4 class="text-white font-semibold mb-4">Student Support</h4>
                     <ul class="space-y-2 text-sm text-gray-400">
-                        <li><a href="#" class="hover:text-green-400 transition-colors flex items-center space-x-2">
-                            <i class="fas fa-chart-bar w-4"></i>
-                            <span>Results Portal</span>
-                        </a></li>
-                        <li><a href="#" class="hover:text-green-400 transition-colors flex items-center space-x-2">
-                            <i class="fas fa-calendar-alt w-4"></i>
-                            <span>Exam Schedule</span>
-                        </a></li>
-                        <li><a href="#" class="hover:text-green-400 transition-colors flex items-center space-x-2">
-                            <i class="fas fa-clock w-4"></i>
-                            <span>Academic Calendar</span>
-                        </a></li>
+                        <li>
+                            <a href="#" class="hover:text-green-400 transition-colors flex items-center space-x-2">
+                                <i class="fas fa-chart-bar w-4"></i>
+                                <span>Results Portal</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" class="hover:text-green-400 transition-colors flex items-center space-x-2">
+                                <i class="fas fa-calendar-alt w-4"></i>
+                                <span>Exam Schedule</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" class="hover:text-green-400 transition-colors flex items-center space-x-2">
+                                <i class="fas fa-clock w-4"></i>
+                                <span>Academic Calendar</span>
+                            </a>
+                        </li>
                     </ul>
                 </div>
                 
+                <!-- Contact Information -->
                 <div>
                     <h4 class="text-white font-semibold mb-4">Contact</h4>
                     <ul class="space-y-3 text-sm text-gray-400">
@@ -181,11 +304,77 @@
                 </div>
             </div>
             
+            <!-- Copyright -->
             <div class="border-t border-gray-800 mt-8 pt-8 text-center text-emerald-500 text-sm">
-                <p>&copy; 2024 Federal College of Education Technical, Omoku. Professional Diploma in Education Program. <br> <br> <span class="text-white text">Powered by Rigel IT Consultz</span></p>
+                <p>&copy; 2025 Federal College of Education Technical, Omoku. Professional Diploma in Education Program.</p>
+                <p class="mt-2 text-white">Powered by <span class="mt-2 text-blue-600">Rigel IT Consultz</span> </p>
             </div>
         </div>
     </footer>
+
+    <!-- JavaScript -->
+    <script>
+        // Auto-hide flash messages after 5 seconds
+        setTimeout(() => {
+            const flashes = document.querySelectorAll('.flash');
+            flashes.forEach(f => f.remove());
+        }, 5000);
+
+        // Dropdown functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            // Toggle dropdown on click
+            document.querySelectorAll('.dropdown > button').forEach(button => {
+                button.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const menu = this.parentNode.querySelector('.dropdown-menu');
+                    menu.classList.toggle('hidden');
+                });
+            });
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function(event) {
+                const dropdowns = document.querySelectorAll('.dropdown');
+                dropdowns.forEach(dropdown => {
+                    if (!dropdown.contains(event.target)) {
+                        const menu = dropdown.querySelector('.dropdown-menu');
+                        if (menu) menu.classList.add('hidden');
+                    }
+                });
+            });
+
+            // Close dropdown when clicking on a dropdown item
+            document.querySelectorAll('.dropdown-menu a, .dropdown-menu button').forEach(item => {
+                item.addEventListener('click', function() {
+                    const menu = this.closest('.dropdown-menu');
+                    if (menu) menu.classList.add('hidden');
+                });
+            });
+        });
+
+        // Password Change Modal Functions
+        function openChangePasswordModal() {
+            document.getElementById('changePasswordModal').classList.remove('hidden');
+        }
+
+        function closeChangePasswordModal() {
+            document.getElementById('changePasswordModal').classList.add('hidden');
+        }
+
+        // Close modal when clicking outside
+        document.addEventListener('click', function(event) {
+            const passwordModal = document.getElementById('changePasswordModal');
+            if (event.target === passwordModal) {
+                closeChangePasswordModal();
+            }
+        });
+
+        // Close modal with Escape key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeChangePasswordModal();
+            }
+        });
+    </script>
 
 </body>
 </html>

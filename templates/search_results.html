@@ -1,146 +1,367 @@
 {% extends "base.html" %}
-{% block title %}Search Students - PDE Portal{% endblock %}
+{% block title %}Advanced Results Search - PDE Portal{% endblock %}
 
 {% block content %}
 <div class="min-h-screen bg-gradient-to-br from-gray-900 to-black py-8">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
-        <!-- Header Section -->
-        <div class="text-center mb-8">
-            <h1 class="text-4xl font-bold text-white mb-2">Student Search</h1>
-            <p class="text-gray-400 text-lg">Find and manage student records</p>
+        <!-- Header Card -->
+        <div class="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-6 border border-gray-700 mb-6">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
+                        <i class="fas fa-filter text-white text-lg"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-bold text-white">Advanced Results Search</h1>
+                        <p class="text-gray-400">Search and filter student results with multiple criteria</p>
+                    </div>
+                </div>
+                <a href="{{ url_for('dashboard_officer') }}" 
+                   class="bg-gradient-to-r from-gray-700 to-gray-800 text-white px-4 py-2 rounded-xl hover:bg-gray-600 transition-all duration-300 flex items-center">
+                    <i class="fas fa-arrow-left mr-2"></i> Back to Dashboard
+                </a>
+            </div>
         </div>
 
         <!-- Search Filters Card -->
-        <div class="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-6 border border-gray-700 mb-8">
-            <h2 class="text-2xl font-bold text-white mb-6 flex items-center">
-                <i class="fas fa-search text-green-400 mr-3"></i>
-                Search Filters
-            </h2>
-
-            <form method="GET" class="space-y-6">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <!-- Search Query -->
+        <div class="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-6 border border-gray-700 mb-6">
+            <form method="GET" action="{{ url_for('search_results') }}" class="space-y-6" id="searchForm">
+                <!-- First Row of Filters -->
+                <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                    <!-- Matric Number -->
                     <div>
-                        <label class="block text-sm font-medium text-gray-300 mb-2">
-                            <i class="fas fa-search mr-2 text-green-400"></i>Search Students
-                        </label>
-                        <input type="text" name="q" value="{{ search_query }}" 
-                               class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-300"
-                               placeholder="Search by name, matric no, email...">
+                        <label for="matric_no" class="block text-sm font-medium text-gray-300 mb-2">Matric Number</label>
+                        <input type="text" id="matric_no" name="matric_no" 
+                               value="{{ request.args.get('matric_no', '') }}" 
+                               placeholder="e.g., CS2025001"
+                               list="matricSuggestions"
+                               class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300">
+                        <datalist id="matricSuggestions">
+                            {% for student in stats.students %}
+                            <option value="{{ student.matric_no }}">
+                            {% endfor %}
+                        </datalist>
                     </div>
-
-                    <!-- Department Filter -->
+                    
+                    <!-- Course Code -->
                     <div>
-                        <label class="block text-sm font-medium text-gray-300 mb-2">
-                            <i class="fas fa-building mr-2 text-blue-400"></i>Department
-                        </label>
-                        <input type="text" name="department" value="{{ department_filter }}" 
-                               class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
-                               placeholder="Filter by department...">
+                        <label for="course_code" class="block text-sm font-medium text-gray-300 mb-2">Course Code</label>
+                        <input type="text" id="course_code" name="course_code"
+                               value="{{ request.args.get('course_code', '') }}"
+                               placeholder="e.g., CSC101"
+                               list="courseSuggestions"
+                               class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300">
+                        <datalist id="courseSuggestions">
+                            {% for course in all_courses %}
+                            <option value="{{ course }}">
+                            {% endfor %}
+                        </datalist>
+                    </div>
+                    
+                    <!-- Grade -->
+                    <div>
+                        <label for="grade" class="block text-sm font-medium text-gray-300 mb-2">Grade</label>
+                        <select id="grade" name="grade" class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300">
+                            <option value="">All Grades</option>
+                            {% for grade in all_grades %}
+                            <option value="{{ grade }}" {% if request.args.get('grade') == grade %}selected{% endif %}>
+                                {{ grade }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <!-- Min Score -->
+                    <div>
+                        <label for="min_score" class="block text-sm font-medium text-gray-300 mb-2">Min Score</label>
+                        <input type="number" id="min_score" name="min_score"
+                               value="{{ request.args.get('min_score', '') }}" min="0" max="100" step="0.1"
+                               placeholder="0"
+                               class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300">
+                    </div>
+                    
+                    <!-- Max Score -->
+                    <div>
+                        <label for="max_score" class="block text-sm font-medium text-gray-300 mb-2">Max Score</label>
+                        <input type="number" id="max_score" name="max_score"
+                               value="{{ request.args.get('max_score', '') }}" min="0" max="100" step="0.1"
+                               placeholder="100"
+                               class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300">
                     </div>
                 </div>
 
-                <!-- Status Filter -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-300 mb-3">
-                        <i class="fas fa-filter mr-2 text-purple-400"></i>Student Status
-                    </label>
-                    <div class="flex flex-wrap gap-4">
-                        <label class="flex items-center space-x-2">
-                            <input type="radio" name="status" value="" 
-                                   {% if not status_filter %}checked{% endif %}
-                                   class="rounded bg-gray-700 border-gray-600 text-green-500 focus:ring-green-500">
-                            <span class="text-gray-300">All Students</span>
-                        </label>
-                        <label class="flex items-center space-x-2">
-                            <input type="radio" name="status" value="with_results" 
-                                   {% if status_filter == 'with_results' %}checked{% endif %}
-                                   class="rounded bg-gray-700 border-gray-600 text-green-500 focus:ring-green-500">
-                            <span class="text-gray-300">With Results</span>
-                        </label>
-                        <label class="flex items-center space-x-2">
-                            <input type="radio" name="status" value="without_results" 
-                                   {% if status_filter == 'without_results' %}checked{% endif %}
-                                   class="rounded bg-gray-700 border-gray-600 text-green-500 focus:ring-green-500">
-                            <span class="text-gray-300">Without Results</span>
-                        </label>
+                <!-- Second Row of Filters -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <!-- Semester -->
+                    <div>
+                        <label for="semester" class="block text-sm font-medium text-gray-300 mb-2">Semester</label>
+                        <select id="semester" name="semester" class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300">
+                            <option value="">All Semesters</option>
+                            <option value="1" {% if request.args.get('semester') == '1' %}selected{% endif %}>First Semester</option>
+                            <option value="2" {% if request.args.get('semester') == '2' %}selected{% endif %}>Second Semester</option>
+                            <option value="3" {% if request.args.get('semester') == '3' %}selected{% endif %}>Third Semester</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Academic Session -->
+                    <div>
+                        <label for="academic_session" class="block text-sm font-medium text-gray-300 mb-2">Academic Session</label>
+                        <select id="academic_session" name="academic_session" class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300">
+                            <option value="">All Sessions</option>
+                            {% for session in all_sessions %}
+                            <option value="{{ session }}" {% if request.args.get('academic_session') == session %}selected{% endif %}>
+                                {{ session }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <!-- Date From -->
+                    <div>
+                        <label for="date_from" class="block text-sm font-medium text-gray-300 mb-2">From Date</label>
+                        <input type="date" id="date_from" name="date_from"
+                               value="{{ request.args.get('date_from', '') }}"
+                               class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300">
+                    </div>
+                    
+                    <!-- Date To -->
+                    <div>
+                        <label for="date_to" class="block text-sm font-medium text-gray-300 mb-2">To Date</label>
+                        <input type="date" id="date_to" name="date_to"
+                               value="{{ request.args.get('date_to', '') }}"
+                               class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300">
+                    </div>
+                </div>
+
+                <!-- Third Row of Filters -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Result Status -->
+                    <div>
+                        <label for="result_status" class="block text-sm font-medium text-gray-300 mb-2">Result Status</label>
+                        <select id="result_status" name="result_status" class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300">
+                            <option value="">All Results</option>
+                            <option value="passed" {% if request.args.get('result_status') == 'passed' %}selected{% endif %}>Pass (A-E / ≥40)</option>
+                            <option value="failed" {% if request.args.get('result_status') == 'failed' %}selected{% endif %}>Fail (F / <40)</option>
+                        </select>
                     </div>
                 </div>
 
                 <!-- Action Buttons -->
-                <div class="flex flex-col sm:flex-row gap-4 pt-4">
-                    <button type="submit" 
-                            class="flex-1 bg-gradient-to-r from-green-600 to-emerald-700 text-white py-3 rounded-xl font-semibold hover:shadow-2xl transition-all duration-300 hover:scale-105 transform">
-                        <i class="fas fa-search mr-2"></i>Search Students
+                <div class="flex flex-wrap gap-3 pt-4 border-t border-gray-700">
+                    <button type="submit" class="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-3 rounded-xl font-semibold hover:shadow-2xl transition-all duration-300 hover:scale-105 transform flex items-center">
+                        <i class="fas fa-search mr-2"></i> Search Results
                     </button>
-                    <a href="{{ url_for('search_students') }}" 
-                       class="px-6 py-3 border-2 border-gray-600 text-white rounded-xl font-semibold transition-all duration-300 hover:border-gray-500 hover:bg-gray-700 text-center">
-                        <i class="fas fa-redo mr-2"></i>Reset
+                    <button type="button" onclick="exportSearchResults()" class="bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-3 rounded-xl font-semibold hover:shadow-2xl transition-all duration-300 hover:scale-105 transform flex items-center">
+                        <i class="fas fa-download mr-2"></i> Export Results
+                    </button>
+                    <a href="{{ url_for('search_results') }}" class="bg-gradient-to-r from-gray-600 to-gray-700 text-white px-6 py-3 rounded-xl font-semibold hover:shadow-2xl transition-all duration-300 hover:scale-105 transform flex items-center">
+                        <i class="fas fa-refresh mr-2"></i> Clear Filters
                     </a>
+                    <button type="button" onclick="saveSearch()" class="bg-gradient-to-r from-purple-600 to-purple-700 text-white px-6 py-3 rounded-xl font-semibold hover:shadow-2xl transition-all duration-300 hover:scale-105 transform flex items-center">
+                        <i class="fas fa-save mr-2"></i> Save Search
+                    </button>
                 </div>
             </form>
         </div>
 
-        <!-- Results Section -->
+        <!-- Quick Stats -->
+        {% if results %}
+        <div class="bg-gradient-to-br from-blue-900 to-blue-800 rounded-2xl p-6 border border-blue-700 mb-6">
+            <div class="grid grid-cols-2 md:grid-cols-6 gap-4 text-center">
+                <div>
+                    <div class="text-2xl font-bold text-white">
+                        {% if pagination %}
+                            {{ pagination.total }}
+                        {% else %}
+                            {{ results|length }}
+                        {% endif %}
+                    </div>
+                    <div class="text-blue-200 text-sm">Total Results</div>
+                </div>
+                <div>
+                    <div class="text-2xl font-bold text-white">{{ results|selectattr('score', '>=', 40)|list|length }}</div>
+                    <div class="text-blue-200 text-sm">Passed</div>
+                </div>
+                <div>
+                    <div class="text-2xl font-bold text-white">{{ results|selectattr('score', '<', 40)|list|length }}</div>
+                    <div class="text-blue-200 text-sm">Failed</div>
+                </div>
+                <div>
+                    <div class="text-2xl font-bold text-white">
+                        {% if results|length > 0 %}
+                            {{ "%.2f"|format(results|map(attribute='score')|sum / results|length) }}
+                        {% else %}
+                            0.00
+                        {% endif %}
+                    </div>
+                    <div class="text-blue-200 text-sm">Avg Score</div>
+                </div>
+                <div>
+                    <div class="text-2xl font-bold text-white">
+                        {% if results|length > 0 %}
+                            {{ "%.1f"|format((results|selectattr('score', '>=', 40)|list|length / results|length * 100)) }}%
+                        {% else %}
+                            0%
+                        {% endif %}
+                    </div>
+                    <div class="text-blue-200 text-sm">Pass Rate</div>
+                </div>
+                <div>
+                    <div class="text-2xl font-bold text-white">{{ all_courses|length }}</div>
+                    <div class="text-blue-200 text-sm">Courses</div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Search Results -->
         <div class="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-6 border border-gray-700">
+            {% if results %}
             <div class="flex items-center justify-between mb-6">
-                <h2 class="text-2xl font-bold text-white flex items-center">
-                    <i class="fas fa-users text-green-400 mr-3"></i>
+                <h2 class="text-xl font-bold text-white flex items-center">
+                    <i class="fas fa-list-alt text-blue-400 mr-3"></i>
                     Search Results
                 </h2>
-                <span class="bg-green-500 bg-opacity-20 text-green-400 px-3 py-1 rounded-full text-sm font-medium">
-                    {{ students|length }} students found
-                </span>
+                <div class="flex items-center space-x-4">
+                    <!-- Pagination Info -->
+                    {% if pagination %}
+                    <span class="bg-purple-500 bg-opacity-20 text-purple-400 px-3 py-1 rounded-full text-sm font-medium">
+                        Page {{ pagination.page }} of {{ pagination.pages }}
+                    </span>
+                    {% endif %}
+                    <span class="bg-blue-500 bg-opacity-20 text-blue-400 px-3 py-1 rounded-full text-sm font-medium">
+                        {% if pagination %}
+                            {{ pagination.total }} total results
+                        {% else %}
+                            {{ results|length }} results found
+                        {% endif %}
+                    </span>
+                </div>
             </div>
 
-            {% if students %}
+            <!-- Items Per Page Selector -->
+            {% if pagination and pagination.pages > 1 %}
+            <div class="flex items-center justify-between mb-6">
+                <div class="flex items-center space-x-4">
+                    <span class="text-gray-400 text-sm">Items per page:</span>
+                    <select onchange="updatePerPage(this.value)" 
+                            class="bg-gray-700 border border-gray-600 rounded-lg px-3 py-1 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="10" {% if per_page == 10 %}selected{% endif %}>10</option>
+                        <option value="20" {% if per_page == 20 %}selected{% endif %}>20</option>
+                        <option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
+                        <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option>
+                    </select>
+                </div>
+                <div class="text-gray-400 text-sm">
+                    Showing {{ pagination.first }} to {{ pagination.last }} of {{ pagination.total }} results
+                </div>
+            </div>
+            {% endif %}
+
             <div class="overflow-x-auto">
-                <table class="w-full text-white">
+                <table class="w-full text-white" id="resultsTable">
                     <thead>
                         <tr class="border-b border-gray-700">
-                            <th class="py-4 px-4 text-left font-semibold text-gray-300">Matric No</th>
-                            <th class="py-4 px-4 text-left font-semibold text-gray-300">Full Name</th>
-                            <th class="py-4 px-4 text-left font-semibold text-gray-300">Username</th>
-                            <th class="py-4 px-4 text-left font-semibold text-gray-300">Email</th>
-                            <th class="py-4 px-4 text-left font-semibold text-gray-300">Results</th>
+                            <th class="py-4 px-4 text-left font-semibold text-gray-300 cursor-pointer hover:text-white transition-colors sortable" data-column="0">
+                                # <i class="fas fa-sort ml-1 text-gray-400 sort-icon"></i>
+                            </th>
+                            <th class="py-4 px-4 text-left font-semibold text-gray-300 cursor-pointer hover:text-white transition-colors sortable" data-column="1">
+                                Matric No <i class="fas fa-sort ml-1 text-gray-400 sort-icon"></i>
+                            </th>
+                            <th class="py-4 px-4 text-left font-semibold text-gray-300 cursor-pointer hover:text-white transition-colors sortable" data-column="2">
+                                Student Name <i class="fas fa-sort ml-1 text-gray-400 sort-icon"></i>
+                            </th>
+                            <th class="py-4 px-4 text-left font-semibold text-gray-300 cursor-pointer hover:text-white transition-colors sortable" data-column="3">
+                                Course <i class="fas fa-sort ml-1 text-gray-400 sort-icon"></i>
+                            </th>
+                            <th class="py-4 px-4 text-left font-semibold text-gray-300 cursor-pointer hover:text-white transition-colors sortable" data-column="4">
+                                Score <i class="fas fa-sort ml-1 text-gray-400 sort-icon"></i>
+                            </th>
+                            <th class="py-4 px-4 text-left font-semibold text-gray-300 cursor-pointer hover:text-white transition-colors sortable" data-column="5">
+                                Grade <i class="fas fa-sort ml-1 text-gray-400 sort-icon"></i>
+                            </th>
+                            <th class="py-4 px-4 text-left font-semibold text-gray-300 cursor-pointer hover:text-white transition-colors sortable" data-column="6">
+                                Session <i class="fas fa-sort ml-1 text-gray-400 sort-icon"></i>
+                            </th>
+                            <th class="py-4 px-4 text-left font-semibold text-gray-300 cursor-pointer hover:text-white transition-colors sortable" data-column="7">
+                                Semester <i class="fas fa-sort ml-1 text-gray-400 sort-icon"></i>
+                            </th>
+                            <th class="py-4 px-4 text-left font-semibold text-gray-300 cursor-pointer hover:text-white transition-colors sortable" data-column="8">
+                                Credit <i class="fas fa-sort ml-1 text-gray-400 sort-icon"></i>
+                            </th>
+                            <th class="py-4 px-4 text-left font-semibold text-gray-300 cursor-pointer hover:text-white transition-colors sortable" data-column="9">
+                                CGPA <i class="fas fa-sort ml-1 text-gray-400 sort-icon"></i>
+                            </th>
+                            <th class="py-4 px-4 text-left font-semibold text-gray-300 cursor-pointer hover:text-white transition-colors sortable" data-column="10">
+                                Date <i class="fas fa-sort ml-1 text-gray-400 sort-icon"></i>
+                            </th>
                             <th class="py-4 px-4 text-left font-semibold text-gray-300">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for student in students %}
+                        {% for result in results %}
                         <tr class="border-b border-gray-700 hover:bg-gray-750 transition-colors duration-200">
+                            <td class="py-4 px-4 text-gray-300">
+                                {% if pagination %}
+                                    {{ pagination.first - 1 + loop.index }}
+                                {% else %}
+                                    {{ loop.index }}
+                                {% endif %}
+                            </td>
                             <td class="py-4 px-4">
-                                <div class="flex items-center">
-                                    <div class="w-8 h-8 bg-green-500 bg-opacity-20 rounded-lg flex items-center justify-center mr-3">
-                                        <i class="fas fa-id-card text-green-400 text-sm"></i>
-                                    </div>
-                                    <span class="font-mono text-green-300">{{ student.matric_no }}</span>
+                                <strong class="text-white">{{ result.matric_no }}</strong>
+                            </td>
+                            <td class="py-4 px-4 text-white">{{ result.student_name }}</td>
+                            <td class="py-4 px-4">
+                                <div>
+                                    <strong class="text-blue-400">{{ result.course_code }}</strong>
+                                    <br>
+                                    <small class="text-gray-400">{{ result.course_title[:30] }}{% if result.course_title|length > 30 %}...{% endif %}</small>
                                 </div>
                             </td>
                             <td class="py-4 px-4">
-                                <div class="font-medium text-white">{{ student.full_name }}</div>
-                            </td>
-                            <td class="py-4 px-4">{{ student.username }}</td>
-                            <td class="py-4 px-4">
-                                <div class="text-sm text-gray-300">{{ student.email }}</div>
-                            </td>
-                            <td class="py-4 px-4">
-                                {% set result_count = student.results|length if student.results else 0 %}
-                                <span class="px-3 py-1 rounded-full text-sm font-medium {% if result_count > 0 %}bg-green-500 bg-opacity-20 text-green-400{% else %}bg-yellow-500 bg-opacity-20 text-yellow-400{% endif %}">
-                                    {{ result_count }} results
+                                <span class="px-3 py-1 rounded-full text-sm font-medium {% if result.score >= 40 %}bg-green-500 bg-opacity-20 text-green-400{% else %}bg-red-500 bg-opacity-20 text-red-400{% endif %}">
+                                    {{ "%.1f"|format(result.score) }}
                                 </span>
                             </td>
                             <td class="py-4 px-4">
+                                <span class="px-3 py-1 rounded-full text-sm font-bold grade-badge grade-{{ result.grade }}">
+                                    {{ result.grade }}
+                                </span>
+                            </td>
+                            <td class="py-4 px-4">
+                                <span class="px-2 py-1 bg-purple-500 bg-opacity-20 text-purple-400 rounded-lg text-xs font-medium">
+                                    {{ result.academic_session }}
+                                </span>
+                            </td>
+                            <td class="py-4 px-4">
+                                <span class="px-2 py-1 bg-blue-500 bg-opacity-20 text-blue-400 rounded-lg text-xs font-medium">
+                                    {{ result.semester }}
+                                </span>
+                            </td>
+                            <td class="py-4 px-4">
+                                <span class="px-3 py-1 rounded-full text-sm font-medium bg-gray-600 text-gray-300">
+                                    {{ result.credit_unit }}
+                                </span>
+                            </td>
+                            <td class="py-4 px-4 font-mono text-purple-400">{{ "%.2f"|format(result.semester_cgpa) }}</td>
+                            <td class="py-4 px-4 text-sm text-gray-400">{{ result.date_uploaded.strftime('%Y-%m-%d') }}</td>
+                            <td class="py-4 px-4">
                                 <div class="flex space-x-2">
-                                    <a href="{{ url_for('edit_student', student_id=student.id) }}" 
-                                       class="bg-yellow-500 bg-opacity-20 text-yellow-400 px-3 py-2 rounded-lg hover:bg-yellow-500 hover:bg-opacity-30 transition-all duration-300 flex items-center">
-                                        <i class="fas fa-edit mr-2"></i>Edit
+                                    <a href="{{ url_for('edit_result', result_id=result.id) }}" 
+                                       class="bg-yellow-500 bg-opacity-20 text-yellow-400 px-3 py-2 rounded-lg hover:bg-yellow-500 hover:bg-opacity-30 transition-all duration-300 flex items-center"
+                                       title="Edit Result">
+                                        <i class="fas fa-edit text-sm"></i>
                                     </a>
-                                    <a href="{{ url_for('search_results') }}?matric_no={{ student.matric_no }}" 
-                                       class="bg-blue-500 bg-opacity-20 text-blue-400 px-3 py-2 rounded-lg hover:bg-blue-500 hover:bg-opacity-30 transition-all duration-300 flex items-center">
-                                        <i class="fas fa-chart-bar mr-2"></i>Results
-                                    </a>
+                                    <form method="POST" action="{{ url_for('delete_result', result_id=result.id) }}" class="inline">
+                                        <button type="submit" 
+                                                class="bg-red-500 bg-opacity-20 text-red-400 px-3 py-2 rounded-lg hover:bg-red-500 hover:bg-opacity-30 transition-all duration-300 flex items-center"
+                                                title="Delete Result"
+                                                onclick="return confirm('Are you sure you want to delete this result?');">
+                                            <i class="fas fa-trash text-sm"></i>
+                                        </button>
+                                    </form>
                                 </div>
                             </td>
                         </tr>
@@ -149,95 +370,347 @@
                 </table>
             </div>
 
-            <!-- Export Options -->
-            <div class="mt-6 pt-6 border-t border-gray-700">
-                <div class="flex flex-col sm:flex-row gap-4 justify-between items-center">
-                    <p class="text-gray-400 text-sm">
-                        Showing {{ students|length }} student(s)
-                        {% if search_query %}matching "{{ search_query }}"{% endif %}
-                    </p>
-                    <div class="flex gap-3">
-                        <button onclick="printStudents()" 
-                                class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-all duration-300 flex items-center">
-                            <i class="fas fa-print mr-2"></i>Print
-                        </button>
-                        <button onclick="exportStudents()" 
-                                class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-all duration-300 flex items-center">
-                            <i class="fas fa-file-export mr-2"></i>Export
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            {% else %}
-            <!-- No Results State -->
-            <div class="text-center py-12">
-                <div class="w-24 h-24 bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <i class="fas fa-users text-gray-500 text-3xl"></i>
-                </div>
-                <h3 class="text-xl font-semibold text-gray-400 mb-2">No Students Found</h3>
-                <p class="text-gray-500 mb-6">
-                    {% if search_query or department_filter or status_filter %}
-                    No students match your search criteria. Try adjusting your filters.
+            <!-- Pagination Controls -->
+            {% if pagination and pagination.pages > 1 %}
+            <div class="mt-8 flex items-center justify-between border-t border-gray-700 pt-6">
+                <!-- Mobile Pagination -->
+                <div class="flex flex-1 justify-between sm:hidden">
+                    {% if pagination.has_prev %}
+                    <a href="{{ build_pagination_url(pagination.prev_num, per_page) }}" 
+                       class="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-300 bg-gray-700 border border-gray-600 rounded-lg hover:bg-gray-600 transition-colors">
+                        Previous
+                    </a>
                     {% else %}
-                    No students are currently registered in the system.
+                    <span class="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-500 bg-gray-800 border border-gray-700 rounded-lg cursor-not-allowed">
+                        Previous
+                    </span>
                     {% endif %}
-                </p>
-                <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                    <a href="{{ url_for('search_students') }}" 
-                       class="bg-gray-700 hover:bg-gray-600 text-white px-6 py-3 rounded-xl transition-all duration-300">
-                        <i class="fas fa-redo mr-2"></i>Clear Filters
+                    
+                    {% if pagination.has_next %}
+                    <a href="{{ build_pagination_url(pagination.next_num, per_page) }}" 
+                       class="relative inline-flex items-center px-4 py-2 ml-3 text-sm font-medium text-gray-300 bg-gray-700 border border-gray-600 rounded-lg hover:bg-gray-600 transition-colors">
+                        Next
                     </a>
-                    <a href="{{ url_for('dashboard_officer') }}" 
-                       class="bg-gradient-to-r from-green-600 to-emerald-700 text-white px-6 py-3 rounded-xl hover:shadow-2xl transition-all duration-300">
-                        <i class="fas fa-tachometer-alt mr-2"></i>Back to Dashboard
-                    </a>
+                    {% else %}
+                    <span class="relative inline-flex items-center px-4 py-2 ml-3 text-sm font-medium text-gray-500 bg-gray-800 border border-gray-700 rounded-lg cursor-not-allowed">
+                        Next
+                    </span>
+                    {% endif %}
+                </div>
+
+                <!-- Desktop Pagination -->
+                <div class="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+                    <div>
+                        <p class="text-sm text-gray-400">
+                            Showing <span class="font-medium text-white">{{ pagination.first }}</span> to 
+                            <span class="font-medium text-white">{{ pagination.last }}</span> of 
+                            <span class="font-medium text-white">{{ pagination.total }}</span> results
+                        </p>
+                    </div>
+                    <div>
+                        <nav class="isolate inline-flex -space-x-px rounded-lg shadow-sm" aria-label="Pagination">
+                            <!-- Previous Page -->
+                            {% if pagination.has_prev %}
+                            <a href="{{ build_pagination_url(pagination.prev_num, per_page) }}" 
+                               class="relative inline-flex items-center px-3 py-2 text-sm font-semibold text-gray-300 bg-gray-700 border border-gray-600 rounded-l-lg hover:bg-gray-600 transition-colors">
+                                <span class="sr-only">Previous</span>
+                                <i class="fas fa-chevron-left"></i>
+                            </a>
+                            {% else %}
+                            <span class="relative inline-flex items-center px-3 py-2 text-sm font-semibold text-gray-500 bg-gray-800 border border-gray-700 rounded-l-lg cursor-not-allowed">
+                                <i class="fas fa-chevron-left"></i>
+                            </span>
+                            {% endif %}
+
+                            <!-- Page Numbers -->
+                            {% for page_num in pagination.iter_pages(left_edge=2, left_current=2, right_current=2, right_edge=2) %}
+                                {% if page_num %}
+                                    {% if page_num == pagination.page %}
+                                    <span class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-white bg-blue-600 border border-blue-500">
+                                        {{ page_num }}
+                                    </span>
+                                    {% else %}
+                                    <a href="{{ build_pagination_url(page_num, per_page) }}" 
+                                       class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-300 bg-gray-700 border border-gray-600 hover:bg-gray-600 transition-colors">
+                                        {{ page_num }}
+                                    </a>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-500 bg-gray-800 border border-gray-700">
+                                        ...
+                                    </span>
+                                {% endif %}
+                            {% endfor %}
+
+                            <!-- Next Page -->
+                            {% if pagination.has_next %}
+                            <a href="{{ build_pagination_url(pagination.next_num, per_page) }}" 
+                               class="relative inline-flex items-center px-3 py-2 text-sm font-semibold text-gray-300 bg-gray-700 border border-gray-600 rounded-r-lg hover:bg-gray-600 transition-colors">
+                                <span class="sr-only">Next</span>
+                                <i class="fas fa-chevron-right"></i>
+                            </a>
+                            {% else %}
+                            <span class="relative inline-flex items-center px-3 py-2 text-sm font-semibold text-gray-500 bg-gray-800 border border-gray-700 rounded-r-lg cursor-not-allowed">
+                                <i class="fas fa-chevron-right"></i>
+                            </span>
+                            {% endif %}
+                        </nav>
+                    </div>
                 </div>
             </div>
             {% endif %}
-        </div>
 
-        <!-- Quick Links -->
-        <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-            <a href="{{ url_for('dashboard_officer') }}" 
-               class="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-6 border border-gray-700 hover:border-green-500 transition-all duration-300 group">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <h3 class="text-lg font-semibold text-white mb-2">Officer Dashboard</h3>
-                        <p class="text-gray-400 text-sm">Back to main dashboard</p>
-                    </div>
-                    <i class="fas fa-arrow-right text-gray-400 group-hover:text-green-400 transition-colors duration-300"></i>
+            <!-- Results Footer -->
+            <div class="flex justify-between items-center mt-6 pt-6 border-t border-gray-700">
+                <div class="text-gray-400 text-sm">
+                    {% if pagination %}
+                        Showing {{ results|length }} results on this page
+                    {% else %}
+                        Showing {{ results|length }} results
+                    {% endif %}
                 </div>
-            </a>
+                <div class="flex gap-3">
+                    <button onclick="printResults()" 
+                            class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-all duration-300 flex items-center">
+                        <i class="fas fa-print mr-2"></i>Print
+                    </button>
+                    <button onclick="scrollToTop()" class="bg-gradient-to-r from-gray-600 to-gray-700 text-white px-4 py-2 rounded-lg hover:shadow-lg transition-all duration-300 flex items-center">
+                        <i class="fas fa-arrow-up mr-2"></i> Back to Top
+                    </button>
+                </div>
+            </div>
 
-            <a href="{{ url_for('search_results') }}" 
-               class="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-6 border border-gray-700 hover:border-blue-500 transition-all duration-300 group">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <h3 class="text-lg font-semibold text-white mb-2">Search Results</h3>
-                        <p class="text-gray-400 text-sm">Advanced result search</p>
-                    </div>
-                    <i class="fas fa-arrow-right text-gray-400 group-hover:text-blue-400 transition-colors duration-300"></i>
+            {% elif request.args %}
+            <!-- No Results State -->
+            <div class="text-center py-12">
+                <div class="w-20 h-20 bg-blue-500 bg-opacity-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-search text-blue-400 text-2xl"></i>
                 </div>
-            </a>
+                <h3 class="text-xl font-semibold text-white mb-2">No results found</h3>
+                <p class="text-gray-400 mb-6">Try adjusting your search criteria or check for typos</p>
+                <a href="{{ url_for('search_results') }}" class="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-3 rounded-xl font-semibold hover:shadow-xl transition-all duration-300 inline-flex items-center">
+                    <i class="fas fa-refresh mr-2"></i> Clear Search
+                </a>
+            </div>
 
-            <a href="{{ url_for('analytics_dashboard') }}" 
-               class="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-6 border border-gray-700 hover:border-purple-500 transition-all duration-300 group">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <h3 class="text-lg font-semibold text-white mb-2">Analytics</h3>
-                        <p class="text-gray-400 text-sm">View performance analytics</p>
-                    </div>
-                    <i class="fas fa-arrow-right text-gray-400 group-hover:text-purple-400 transition-colors duration-300"></i>
+            {% else %}
+            <!-- Initial State -->
+            <div class="text-center py-12">
+                <div class="w-20 h-20 bg-gray-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-filter text-gray-400 text-2xl"></i>
                 </div>
-            </a>
+                <h3 class="text-xl font-semibold text-white mb-2">Ready to Search</h3>
+                <p class="text-gray-400">Use the filters above to search for student results by various criteria</p>
+            </div>
+            {% endif %}
         </div>
     </div>
 </div>
 
+<!-- JavaScript -->
+<script>
+function exportSearchResults() {
+    const params = new URLSearchParams(window.location.search);
+    params.set('export', 'true');
+    const exportUrl = `${window.location.pathname}?${params.toString()}`;
+    window.location.href = exportUrl;
+}
+
+function saveSearch() {
+    const searchParams = new URLSearchParams(window.location.search);
+    const searchString = searchParams.toString();
+    localStorage.setItem('lastSearch', searchString);
+    
+    // Show toast notification
+    showNotification('Search criteria saved!', 'success');
+}
+
+function loadSavedSearch() {
+    const savedSearch = localStorage.getItem('lastSearch');
+    if (savedSearch) {
+        if (confirm('Load your last saved search?')) {
+            window.location.href = `${window.location.pathname}?${savedSearch}`;
+        }
+    } else {
+        showNotification('No saved search found.', 'info');
+    }
+}
+
+function scrollToTop() {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function printResults() {
+    window.print();
+}
+
+function showNotification(message, type) {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 px-6 py-3 rounded-xl shadow-lg border transform transition-all duration-300 ${
+        type === 'success' ? 'bg-green-900 bg-opacity-20 text-green-400 border-green-800' :
+        type === 'error' ? 'bg-red-900 bg-opacity-20 text-red-400 border-red-800' :
+        'bg-blue-900 bg-opacity-20 text-blue-400 border-blue-800'
+    }`;
+    notification.innerHTML = `
+        <div class="flex items-center space-x-3">
+            <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+            <span>${message}</span>
+        </div>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Remove after 3 seconds
+    setTimeout(() => {
+        notification.remove();
+    }, 3000);
+}
+
+// Update items per page
+function updatePerPage(value) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('per_page', value);
+    url.searchParams.set('page', 1); // Reset to first page
+    window.location.href = url.toString();
+}
+
+// Enhanced table sorting with visual indicators
+document.addEventListener('DOMContentLoaded', function() {
+    const sortableHeaders = document.querySelectorAll('.sortable');
+    let currentSort = { column: null, direction: 'asc' };
+    
+    sortableHeaders.forEach(header => {
+        header.addEventListener('click', function() {
+            const columnIndex = parseInt(this.getAttribute('data-column'));
+            sortTable(columnIndex);
+        });
+    });
+    
+    function sortTable(columnIndex) {
+        const table = document.getElementById('resultsTable');
+        const tbody = table.querySelector('tbody');
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+        const isNumeric = columnIndex === 0 || columnIndex === 4 || columnIndex === 8 || columnIndex === 9;
+        
+        // Determine sort direction
+        const direction = currentSort.column === columnIndex && currentSort.direction === 'asc' ? 'desc' : 'asc';
+        
+        rows.sort((a, b) => {
+            let aValue = a.cells[columnIndex].textContent.trim();
+            let bValue = b.cells[columnIndex].textContent.trim();
+            
+            // Handle numeric columns
+            if (isNumeric) {
+                const aNum = parseFloat(aValue) || 0;
+                const bNum = parseFloat(bValue) || 0;
+                return direction === 'asc' ? aNum - bNum : bNum - aNum;
+            }
+            
+            // Handle text columns
+            if (direction === 'asc') {
+                return aValue.localeCompare(bValue);
+            } else {
+                return bValue.localeCompare(aValue);
+            }
+        });
+        
+        // Update table with sorted rows
+        tbody.innerHTML = '';
+        rows.forEach(row => tbody.appendChild(row));
+        
+        // Update sort indicators
+        updateSortIndicators(columnIndex, direction);
+        
+        // Store current sort state
+        currentSort = { column: columnIndex, direction };
+    }
+    
+    function updateSortIndicators(columnIndex, direction) {
+        const sortableHeaders = document.querySelectorAll('.sortable');
+        const sortIcons = document.querySelectorAll('.sort-icon');
+        
+        // Reset all icons
+        sortIcons.forEach(icon => {
+            icon.className = 'fas fa-sort ml-1 text-gray-400 sort-icon';
+        });
+        
+        // Update the active column icon
+        const activeHeader = document.querySelector(`.sortable[data-column="${columnIndex}"]`);
+        if (activeHeader) {
+            const activeIcon = activeHeader.querySelector('.sort-icon');
+            if (direction === 'asc') {
+                activeIcon.className = 'fas fa-sort-up ml-1 text-blue-400 sort-icon';
+            } else {
+                activeIcon.className = 'fas fa-sort-down ml-1 text-blue-400 sort-icon';
+            }
+        }
+    }
+    
+    // Auto-submit form when certain fields change
+    const autoSubmitFields = ['grade', 'semester', 'result_status', 'academic_session'];
+    autoSubmitFields.forEach(field => {
+        const element = document.getElementById(field);
+        if (element) {
+            element.addEventListener('change', function() {
+                this.form.submit();
+            });
+        }
+    });
+    
+    // Check for saved search on page load
+    const currentParams = new URLSearchParams(window.location.search);
+    if (!currentParams.toString() && localStorage.getItem('lastSearch')) {
+        // Show load saved search button
+        const loadBtn = document.createElement('button');
+        loadBtn.className = 'fixed top-20 right-4 bg-purple-600 text-white px-4 py-2 rounded-lg shadow-lg hover:bg-purple-700 transition-colors z-50';
+        loadBtn.innerHTML = '<i class="fas fa-history mr-2"></i>Load Saved Search';
+        loadBtn.onclick = loadSavedSearch;
+        document.body.appendChild(loadBtn);
+    }
+});
+</script>
+
 <style>
+.grade-badge {
+    min-width: 40px;
+    display: inline-block;
+    text-align: center;
+    color: white;
+    font-weight: bold;
+}
+.grade-A { background-color: #10b981; } /* Green */
+.grade-B { background-color: #3b82f6; } /* Blue */
+.grade-C { background-color: #8b5cf6; } /* Purple */
+.grade-D { background-color: #ec4899; } /* Pink */
+.grade-E { background-color: #f59e0b; } /* Yellow */
+.grade-F { background-color: #ef4444; } /* Red */
+
 .hover\:bg-gray-750:hover {
     background-color: rgba(55, 65, 81, 0.5);
+}
+
+/* Smooth transitions for table interactions */
+#resultsTable tr {
+    transition: all 0.2s ease-in-out;
+}
+
+#resultsTable th:hover {
+    background-color: rgba(55, 65, 81, 0.3);
+}
+
+.sortable {
+    position: relative;
+    user-select: none;
+}
+
+.sortable:hover {
+    background-color: rgba(55, 65, 81, 0.3);
+}
+
+.sort-icon {
+    transition: all 0.2s ease-in-out;
+    font-size: 0.8em;
 }
 
 @media print {
@@ -246,65 +719,4 @@
     }
 }
 </style>
-
-<script>
-function printStudents() {
-    window.print();
-}
-
-function exportStudents() {
-    // Create CSV content from the table data
-    let csvContent = "data:text/csv;charset=utf-8,";
-    
-    // CSV headers
-    csvContent += "Matric No,Full Name,Username,Email,Results Count\n";
-    
-    // Get data from the table rows
-    const rows = document.querySelectorAll('tbody tr');
-    rows.forEach(row => {
-        const cells = row.querySelectorAll('td');
-        if (cells.length >= 5) {
-            const matricNo = cells[0].querySelector('.font-mono')?.textContent?.trim() || '';
-            const fullName = cells[1].querySelector('.font-medium')?.textContent?.trim() || '';
-            const username = cells[2].textContent.trim();
-            const email = cells[3].textContent.trim();
-            const resultsCount = cells[4].querySelector('span')?.textContent?.match(/\d+/)?.[0] || '0';
-            
-            const rowData = [
-                matricNo,
-                fullName,
-                username,
-                email,
-                resultsCount
-            ].map(field => `"${field}"`).join(',');
-            
-            csvContent += rowData + "\n";
-        }
-    });
-    
-    // Create download link
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", "students_export.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-}
-
-// Add search suggestions (basic implementation)
-document.addEventListener('DOMContentLoaded', function() {
-    const searchInput = document.querySelector('input[name="q"]');
-    
-    if (searchInput) {
-        searchInput.addEventListener('input', function() {
-            // You can enhance this with actual API calls for suggestions
-            if (this.value.length > 2) {
-                console.log('Searching for:', this.value);
-                // Implement AJAX search suggestions here
-            }
-        });
-    }
-});
-</script>
 {% endblock %}
