@@ -241,7 +241,7 @@
 </div>
 
 <!-- Preview Modal -->
-<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden" id="previewModal">
+<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-40 hidden" id="previewModal">
     <div class="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl border border-gray-700 max-w-6xl w-full mx-4 max-h-[80vh] flex flex-col">
         <div class="flex items-center justify-between p-6 border-b border-gray-700">
             <h3 class="text-xl font-bold text-white" id="previewModalTitle">Preview Items for Deletion</h3>
@@ -295,7 +295,7 @@
 </div>
 
 <!-- Student Selection Modal -->
-<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden" id="studentSelectionModal">
+<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-40 hidden" id="studentSelectionModal">
     <div class="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl border border-gray-700 max-w-4xl w-full mx-4 max-h-[80vh] flex flex-col">
         <div class="flex items-center justify-between p-6 border-b border-gray-700">
             <h3 class="text-xl font-bold text-white">Select Students to Delete</h3>
@@ -337,7 +337,7 @@
 </div>
 
 <!-- Result Selection Modal -->
-<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden" id="resultSelectionModal">
+<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-40 hidden" id="resultSelectionModal">
     <div class="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl border border-gray-700 max-w-6xl w-full mx-4 max-h-[80vh] flex flex-col">
         <div class="flex items-center justify-between p-6 border-b border-gray-700">
             <h3 class="text-xl font-bold text-white">Select Results to Delete</h3>
@@ -381,6 +381,28 @@
 </div>
 
 <style>
+/* Force navbar to stay on top of everything */
+nav {
+    z-index: 9999 !important;
+    position: relative;
+}
+
+/* Modal backdrops - lower than navbar */
+.fixed.inset-0.bg-black.bg-opacity-50 {
+    z-index: 100 !important;
+}
+
+/* Modal content - higher than backdrop but lower than navbar */
+.fixed.inset-0.bg-black.bg-opacity-50.flex.items-center.justify-center > div {
+    z-index: 150 !important;
+}
+
+/* Ensure dropdown menus appear above modals */
+.dropdown-menu {
+    z-index: 10000 !important;
+}
+
+/* Your existing styles */
 .bg-gray-750 {
     background-color: rgba(55, 65, 81, 0.5);
 }
@@ -409,25 +431,23 @@
 // Global variables
 let selectedStudentIds = [];
 let selectedResultIds = [];
-let currentPreviewType = ''; // 'students' or 'results'
+let currentPreviewType = '';
 let currentPreviewCriteria = {};
 
-// Modal functions with proper z-index management
+// Fixed modal functions with proper z-index
 function showModal(modalId) {
-    document.getElementById(modalId).classList.remove('hidden');
-    // Ensure the modal has proper z-index
-    document.getElementById(modalId).style.zIndex = '60';
+    const modal = document.getElementById(modalId);
+    modal.classList.remove('hidden');
 }
 
 function showPreviewModal(modalId) {
-    document.getElementById(modalId).classList.remove('hidden');
-    // Preview modals should have higher z-index to appear on top
-    document.getElementById(modalId).style.zIndex = '70';
+    const modal = document.getElementById(modalId);
+    modal.classList.remove('hidden');
 }
 
 function closeModal(modalId) {
-    document.getElementById(modalId).classList.add('hidden');
-    document.getElementById(modalId).style.zIndex = '';
+    const modal = document.getElementById(modalId);
+    modal.classList.add('hidden');
 }
 
 function closePreviewModal() {
@@ -489,13 +509,11 @@ function previewSelectedStudents() {
         return;
     }
     
-    // Fetch the selected students' details for preview
     fetch('/api/v1/students')
         .then(response => response.json())
         .then(students => {
             const selectedStudents = students.filter(s => selectedStudentIds.includes(s.id));
             showPreview('students', selectedStudents, 'selected');
-            // Don't close the selection modal - keep it open behind the preview
         });
 }
 
@@ -504,18 +522,15 @@ function previewStudentsByCriteria() {
     const formData = new FormData(form);
     const criteria = Object.fromEntries(formData.entries());
     
-    // Remove empty values
     Object.keys(criteria).forEach(key => {
         if (!criteria[key]) delete criteria[key];
     });
     
-    // Fetch students matching criteria
     fetch('/api/v1/students')
         .then(response => response.json())
         .then(students => {
             let filteredStudents = students;
             
-            // Apply filters
             if (criteria.department) {
                 filteredStudents = filteredStudents.filter(s => s.department === criteria.department);
             }
@@ -585,13 +600,11 @@ function previewSelectedResults() {
         return;
     }
     
-    // Fetch the selected results' details for preview
     fetch('/api/v1/results')
         .then(response => response.json())
         .then(results => {
             const selectedResults = results.filter(r => selectedResultIds.includes(r.id));
             showPreview('results', selectedResults, 'selected');
-            // Don't close the selection modal - keep it open behind the preview
         });
 }
 
@@ -600,7 +613,6 @@ function previewResultsByCriteria() {
     const formData = new FormData(form);
     const criteria = Object.fromEntries(formData.entries());
     
-    // Remove empty values and convert numeric fields
     Object.keys(criteria).forEach(key => {
         if (!criteria[key]) {
             delete criteria[key];
@@ -609,13 +621,11 @@ function previewResultsByCriteria() {
         }
     });
     
-    // Fetch results matching criteria
     fetch('/api/v1/results')
         .then(response => response.json())
         .then(results => {
             let filteredResults = results;
             
-            // Apply filters
             if (criteria.course_code) {
                 filteredResults = filteredResults.filter(r => r.course_code === criteria.course_code);
             }
@@ -648,7 +658,7 @@ function previewResultsByCriteria() {
         });
 }
 
-// Preview Function - Updated to handle both selection and criteria previews
+// Preview Function
 function showPreview(type, items, selectionType, criteria = {}) {
     currentPreviewType = type;
     currentPreviewCriteria = { selectionType, criteria, items: items.map(item => item.id) };
@@ -661,7 +671,6 @@ function showPreview(type, items, selectionType, criteria = {}) {
     const previewSummary = document.getElementById('previewSummary');
     const confirmBtn = document.getElementById('confirmPreviewDeleteBtn');
     
-    // Update counts and titles
     previewCount.textContent = `${items.length} ${type} selected for deletion`;
     
     if (selectionType === 'selected') {
@@ -672,13 +681,11 @@ function showPreview(type, items, selectionType, criteria = {}) {
         previewSummary.textContent = `Review the ${items.length} ${type} matching your criteria below before confirming deletion`;
     }
     
-    // Set button color based on type
     confirmBtn.className = confirmBtn.className.replace(/bg-(red|yellow|green|blue|purple)-600/, 
         type === 'students' ? 'bg-red-600' : 'bg-yellow-600');
     confirmBtn.className = confirmBtn.className.replace(/hover:bg-(red|yellow|green|blue|purple)-700/, 
         type === 'students' ? 'hover:bg-red-700' : 'hover:bg-yellow-700');
     
-    // Show/hide empty state
     if (items.length === 0) {
         previewTableHead.innerHTML = '';
         previewTableBody.innerHTML = '';
@@ -690,7 +697,6 @@ function showPreview(type, items, selectionType, criteria = {}) {
         previewEmpty.classList.add('hidden');
         confirmBtn.disabled = false;
         
-        // Set table headers
         if (type === 'students') {
             previewTableHead.innerHTML = `
                 <tr class="border-b border-gray-700">
@@ -714,7 +720,6 @@ function showPreview(type, items, selectionType, criteria = {}) {
             `;
         }
         
-        // Populate table body
         previewTableBody.innerHTML = '';
         items.forEach(item => {
             const row = document.createElement('tr');
@@ -754,12 +759,10 @@ function showPreview(type, items, selectionType, criteria = {}) {
         });
     }
     
-    // Set confirm button action
     confirmBtn.onclick = () => {
         if (currentPreviewType === 'students') {
             if (currentPreviewCriteria.selectionType === 'selected') {
                 deleteStudents(currentPreviewCriteria.items);
-                // Close both modals after confirmation
                 closeStudentSelectionModal();
             } else {
                 deleteStudentsByCriteria(currentPreviewCriteria.criteria);
@@ -767,7 +770,6 @@ function showPreview(type, items, selectionType, criteria = {}) {
         } else {
             if (currentPreviewCriteria.selectionType === 'selected') {
                 deleteResults(currentPreviewCriteria.items);
-                // Close both modals after confirmation
                 closeResultSelectionModal();
             } else {
                 deleteResultsByCriteria(currentPreviewCriteria.criteria);
@@ -776,11 +778,10 @@ function showPreview(type, items, selectionType, criteria = {}) {
         closePreviewModal();
     };
     
-    // Show preview modal with higher z-index to appear on top
     showPreviewModal('previewModal');
 }
 
-// Delete functions (modified to accept parameters)
+// Delete functions
 function deleteStudents(studentIds) {
     fetch('/admin/bulk-delete/students', {
         method: 'POST',

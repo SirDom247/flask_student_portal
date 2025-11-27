@@ -3,12 +3,15 @@ from dotenv import load_dotenv
 from datetime import timedelta
 
 load_dotenv()
+
 class Config:
-    SECRET_KEY = os.environ.get('SECRET_KEY')
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
+    SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-secret-key-change-in-production'
+    
+    # Database
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///student_portal.db'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
-     # Database connection pooling
+    # Database connection pooling
     SQLALCHEMY_ENGINE_OPTIONS = {
         'pool_size': 10,
         'max_overflow': 20,
@@ -17,22 +20,40 @@ class Config:
         'pool_timeout': 30,     # 30 seconds timeout
     }
 
-    UPLOAD_FOLDER = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'static/uploads')
+    # File Upload
+    MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB max file size
+    UPLOAD_FOLDER = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'static', 'uploads')
+    ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'pdf'}
 
-  # Session Security (set to False for development without HTTPS)
-    SESSION_COOKIE_SECURE = False  # Set to True in production with HTTPS
+    # Session Security
+    SESSION_COOKIE_SECURE = os.environ.get('SESSION_COOKIE_SECURE', 'False').lower() == 'true'  # Set to True in production with HTTPS
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = 'Lax'
     PERMANENT_SESSION_LIFETIME = timedelta(hours=1)
-    
-    # File Upload
-    MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB max file size
-    UPLOAD_FOLDER = 'uploads'
     
     # Rate Limiting
     RATELIMIT_STORAGE_URI = "memory://"
     
     # CSRF
-    WTF_CSRF_ENABLED = False
+    WTF_CSRF_ENABLED = True  # Should be True for security
     WTF_CSRF_TIME_LIMIT = 3600  # 1 hour
 
+    # Email Configuration
+    MAIL_SERVER = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
+    MAIL_PORT = int(os.environ.get('MAIL_PORT', 587))
+    MAIL_USE_TLS = os.environ.get('MAIL_USE_TLS', 'True').lower() == 'true'
+    MAIL_USE_SSL = os.environ.get('MAIL_USE_SSL', 'False').lower() == 'false'
+    MAIL_USERNAME = os.environ.get('MAIL_USERNAME', '')
+    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD', '')
+    MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER', 'noreply@fcetomoku.edu.ng')
+    MAIL_MAX_EMAILS = os.environ.get('MAIL_MAX_EMAILS')
+    MAIL_ASCII_ATTACHMENTS = False
+
+    # Password Reset
+    PASSWORD_RESET_SALT = 'password-reset-salt'
+    PASSWORD_RESET_EXPIRY = 3600  # 1 hour in seconds
+
+    # Application Settings
+    DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
+    TESTING = os.environ.get('TESTING', 'False').lower() == 'true'
+    

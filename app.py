@@ -23,6 +23,12 @@ from urllib.parse import urlencode
 import html
 import re
 from dotenv import load_dotenv
+import base64
+from PIL import Image
+from itsdangerous import URLSafeTimedSerializer
+from flask_mail import Mail, Message
+
+
 
 # -------------------- App Initialization --------------------
 app = Flask(__name__)
@@ -40,7 +46,7 @@ csrf.init_app(app)
 limiter = Limiter(
     get_remote_address,
     app=app,
-    default_limits=["200 per day", "50 per hour"],
+    default_limits=["1000 per day", "100 per hour"],
     storage_uri="memory://"
 )
 
@@ -73,6 +79,8 @@ else:
 # Log environment info 
 logger.info(f"Application started in {os.getenv('FLASK_ENV', 'unknown')} mode")
 
+mail = Mail(app)
+
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'xlsx', 'xls'}
 
 # WTForms (for validation)
@@ -97,36 +105,36 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
- # -------------------- Enhanced Security Headers --------------------
-
+# -------------------- Enhanced Security Headers --------------------
 @app.after_request
 def set_security_headers(response):
-    """Set security headers with CSP that allows your specific dependencies"""
+    """Set security headers with CSP that allows all your external dependencies"""
     response.headers['X-Content-Type-Options'] = 'nosniff'
     response.headers['X-Frame-Options'] = 'DENY'
     response.headers['X-XSS-Protection'] = '1; mode=block'
     response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
     
-    # CSP optimized for your exact CDN dependencies
+    # Comprehensive CSP for all your dependencies
     csp_policy = (
         "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; "
+        "script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; "
         "style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://fonts.googleapis.com; "
         "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; "
-        "img-src 'self' data: blob:; "
+        "img-src 'self' data: blob: https:; "
         "connect-src 'self'; "
         "frame-ancestors 'none'; "
         "base-uri 'self'; "
-        "form-action 'self'"
+        "form-action 'self'; "
+        "object-src 'none'; "
+        "media-src 'self'"
     )
     response.headers['Content-Security-Policy'] = csp_policy
     response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
-    response.headers['Permissions-Policy'] = 'geolocation=(), microphone=(), camera=()'
+    response.headers['Permissions-Policy'] = 'geolocation=(), microphone=(), camera=(), payment=()'
     
     return response
 
-
-# -------------------- Database Error Handler --------------------
+#-------------------- Database Error Handler --------------------
 def handle_db_errors(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -621,6 +629,41 @@ def change_student_password():
     
     return redirect(url_for('dashboard_student'))
 
+@app.route('/change-password', methods=['GET', 'POST'])
+@login_required
+def change_password():
+    if request.method == 'POST':
+        current_password = request.form.get('current_password')
+        new_password = request.form.get('new_password')
+        confirm_password = request.form.get('confirm_password')
+        
+        # Verify current password
+        if not current_user.check_password(current_password):
+            flash('Current password is incorrect.', 'error')
+            return render_template('reset_password.html', 
+                                 password_reset_required=False)
+        
+        # Validate new passwords
+        if new_password != confirm_password:
+            flash('New passwords do not match.', 'error')
+            return render_template('reset_password.html',
+                                 password_reset_required=False)
+        
+        if len(new_password) < 8:
+            flash('Password must be at least 8 characters long.', 'error')
+            return render_template('reset_password.html',
+                                 password_reset_required=False)
+        
+        # Update password
+        current_user.set_password(new_password)
+        db.session.commit()
+        
+        flash('Your password has been updated successfully!', 'success')
+        return redirect(url_for('dashboard_student'))
+    
+    return render_template('reset_password.html', 
+                         password_reset_required=False)
+
 
 # -------------------- Performance Optimization --------------------
 def bulk_update_cgpa(student_ids):
@@ -700,7 +743,7 @@ def get_dashboard_stats():
 @login_manager.user_loader
 def load_user(user_id):
     try:
-        return User.query.get(int(user_id))
+        return db.session.get(User, int(user_id))
     except Exception:
         return None
 
@@ -796,7 +839,8 @@ def register():
     return render_template("register.html")
 
 @app.route("/login", methods=["GET", "POST"])
-@limiter.limit("5 per minute")
+@limiter.limit("10 per minute")
+@limiter.limit("30 per hour")
 def login():
     if request.method == "POST":
         email = request.form.get('email', '').strip()
@@ -889,6 +933,244 @@ def reset_password():
     
     return render_template("reset_password.html", 
                          password_reset_required=password_reset_required)
+
+@app.route('/forgot-password', methods=['GET', 'POST'])
+@limiter.limit("5 per minute")
+def forgot_password():
+    if request.method == 'POST':
+        email = request.form.get('email', '').strip().lower()
+        
+        if not email:
+            flash('Please enter your email address.', 'error')
+            return render_template('forgot_password.html')
+        
+        user = User.query.filter_by(email=email).first()
+        
+        if user:
+            try:
+                # Generate secure reset token
+                serializer = URLSafeTimedSerializer(app.config['SECRET_KEY'])
+                token = serializer.dumps(email, salt='password-reset-salt')
+                
+                # Create reset URL
+                reset_url = url_for('reset_password', token=token, _external=True)
+                
+                # Create email message
+                msg = Message(
+                    'Password Reset Request - PDE Portal',
+                    sender=app.config.get('MAIL_DEFAULT_SENDER', 'noreply@fcetomoku.edu.ng'),
+                    recipients=[email]
+                )
+                
+                # Plain text version
+                msg.body = f'''Password Reset Request
+
+Hello {user.full_name or 'User'},
+
+You have requested to reset your password for your PDE Portal account.
+
+To reset your password, please click the following link:
+{reset_url}
+
+This link will expire in 1 hour for security reasons.
+
+If you did not request this password reset, please ignore this email. 
+Your account remains secure.
+
+For any questions, contact the IT support desk.
+
+Best regards,
+PDE Portal Team
+Federal College of Education (Technical) Omoku
+'''
+                
+                # HTML version
+                msg.html = f'''
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        body {{
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }}
+        .header {{
+            background: linear-gradient(135deg, #10b981, #059669);
+            padding: 30px;
+            text-align: center;
+            color: white;
+            border-radius: 10px 10px 0 0;
+        }}
+        .content {{
+            background: #f9f9f9;
+            padding: 30px;
+            border-radius: 0 0 10px 10px;
+            border: 1px solid #e1e1e1;
+            border-top: none;
+        }}
+        .button {{
+            display: inline-block;
+            padding: 14px 28px;
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 16px;
+            margin: 20px 0;
+        }}
+        .footer {{
+            text-align: center;
+            margin-top: 30px;
+            font-size: 12px;
+            color: #666;
+            border-top: 1px solid #e1e1e1;
+            padding-top: 20px;
+        }}
+        .warning {{
+            background: #fef3cd;
+            border: 1px solid #fde68a;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            font-size: 14px;
+        }}
+        .code {{
+            background: #f1f1f1;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            word-break: break-all;
+            margin: 10px 0;
+        }}
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🔐 PDE Portal</h1>
+        <p>Password Reset Request</p>
+    </div>
+    
+    <div class="content">
+        <h2>Hello {user.full_name or 'User'},</h2>
+        
+        <p>You have requested to reset your password for your PDE Portal account.</p>
+        
+        <p style="text-align: center;">
+            <a href="{reset_url}" class="button">Reset Your Password</a>
+        </p>
+        
+        <p>Or copy and paste this link into your browser:</p>
+        <div class="code">{reset_url}</div>
+        
+        <div class="warning">
+            <strong>⚠️ Important:</strong> This link will expire in 1 hour for security reasons.
+        </div>
+        
+        <p>If you did not request this password reset, please ignore this email. Your account remains secure.</p>
+        
+        <p>For any questions or if you need assistance, please contact the IT support desk.</p>
+        
+        <p>Best regards,<br>
+        <strong>PDE Portal Team</strong><br>
+        Federal College of Education (Technical) Omoku</p>
+    </div>
+    
+    <div class="footer">
+        <p>This is an automated message. Please do not reply to this email.</p>
+        <p>© 2024 Federal College of Education (Technical) Omoku. All rights reserved.</p>
+    </div>
+</body>
+</html>
+'''
+                
+                # Send email
+                mail.send(msg)
+                
+                # Log successful email sending
+                app.logger.info(f"Password reset email sent to {email}")
+                
+            except Exception as e:
+                # Log the error but don't reveal it to the user (security)
+                app.logger.error(f"Failed to send password reset email to {email}: {str(e)}")
+                # Don't show error to user to prevent email enumeration
+        
+        # Always show the same message regardless of whether user exists (security best practice)
+        flash('If an account with that email exists, a password reset link has been sent. Please check your email.', 'info')
+        return redirect(url_for('login'))
+    
+    return render_template('forgot_password.html')
+
+@app.route('/reset-password/<token>', methods=['GET', 'POST'])
+@limiter.limit("5 per minute")
+def reset_password_with_token(token):
+    try:
+        # Verify token
+        serializer = URLSafeTimedSerializer(app.config['SECRET_KEY'])
+        email = serializer.loads(token, salt=app.config.get('PASSWORD_RESET_SALT', 'password-reset-salt'), 
+                               max_age=app.config.get('PASSWORD_RESET_EXPIRY', 3600))
+    except Exception as e:
+        app.logger.warning(f"Invalid or expired reset token attempted: {token}")
+        flash('The reset link is invalid or has expired. Please request a new password reset link.', 'error')
+        return redirect(url_for('forgot_password'))
+    
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        app.logger.warning(f"Reset token for non-existent user: {email}")
+        flash('Invalid reset token.', 'error')
+        return redirect(url_for('forgot_password'))
+    
+    if request.method == 'POST':
+        new_password = request.form.get('new_password', '').strip()
+        confirm_password = request.form.get('confirm_password', '').strip()
+        
+        # Validate passwords
+        if not new_password or not confirm_password:
+            flash('Please fill in all password fields.', 'error')
+            return render_template('reset_password.html', 
+                                 password_reset_required=True,
+                                 token=token)
+        
+        if new_password != confirm_password:
+            flash('New passwords do not match.', 'error')
+            return render_template('reset_password.html',
+                                 password_reset_required=True,
+                                 token=token)
+        
+        if len(new_password) < 8:
+            flash('Password must be at least 8 characters long.', 'error')
+            return render_template('reset_password.html',
+                                 password_reset_required=True,
+                                 token=token)
+        
+        try:
+            # Update password
+            user.set_password(new_password)
+            db.session.commit()
+            
+            # Log the password reset
+            app.logger.info(f"Password successfully reset for user: {email}")
+            
+            flash('Your password has been reset successfully! You can now login with your new password.', 'success')
+            return redirect(url_for('login'))
+            
+        except Exception as e:
+            db.session.rollback()
+            app.logger.error(f"Error resetting password for {email}: {str(e)}")
+            flash('An error occurred while resetting your password. Please try again.', 'error')
+            return render_template('reset_password.html',
+                                 password_reset_required=True,
+                                 token=token)
+    
+    return render_template('reset_password.html', 
+                         password_reset_required=True,
+                         token=token)
+
 
 # -------------------- Dashboard Routes --------------------
 @app.route("/dashboard_student")
@@ -1590,8 +1872,8 @@ def edit_student(student_id):
             student.username = username
             student.email = email
             student.matric_no = new_matric_no
-            student.department = department  # NEW
-            student.school = school  # NEW
+            student.department = department
+            student.school = school
 
             db.session.commit()
 
@@ -2009,6 +2291,122 @@ def export_students():
     
     filename = f"students_export_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.csv"
     return send_file(output, as_attachment=True, download_name=filename)
+
+import os
+import base64
+from io import BytesIO
+from PIL import Image
+
+# Add this route to handle profile picture uploads
+@app.route("/upload_profile_picture", methods=["POST"])
+@login_required
+def upload_profile_picture():
+    """Handle profile picture upload and save to database"""
+    if current_user.role != 'student':
+        return jsonify({"success": False, "error": "Unauthorized"}), 403
+    try:
+        if 'profile_picture' not in request.files:
+            return jsonify({"success": False, "error": "No file selected"}), 400
+        
+        file = request.files['profile_picture']
+        
+        if file.filename == '':
+            return jsonify({"success": False, "error": "No file selected"}), 400
+        
+        # Validate file type
+        allowed_extensions = {'png', 'jpg', 'jpeg', 'gif'}
+        if not ('.' in file.filename and 
+                file.filename.rsplit('.', 1)[1].lower() in allowed_extensions):
+            return jsonify({"success": False, "error": "Invalid file type. Only PNG, JPG, JPEG, GIF allowed."}), 400
+        
+        # Validate file size (2MB max)
+        file.seek(0, os.SEEK_END)
+        file_length = file.tell()
+        file.seek(0)
+        
+        if file_length > 2 * 1024 * 1024:  # 2MB
+            return jsonify({"success": False, "error": "File size must be less than 2MB"}), 400
+        
+        # Process image
+        try:
+            image = Image.open(file.stream)
+            
+            # Convert to RGB if necessary
+            if image.mode in ('RGBA', 'LA', 'P'):
+                image = image.convert('RGB')
+            
+            # Resize image to reasonable size (300x300 max)
+            image.thumbnail((300, 300), Image.Resampling.LANCZOS)
+            
+            # Convert to base64 for database storage
+            buffered = BytesIO()
+            image.save(buffered, format="JPEG", quality=85)
+            img_str = base64.b64encode(buffered.getvalue()).decode()
+            
+            # Create data URL
+            profile_picture_url = f"data:image/jpeg;base64,{img_str}"
+            
+        except Exception as e:
+            logger.error(f"Image processing error: {str(e)}")
+            return jsonify({"success": False, "error": "Invalid image file"}), 400
+        
+        # Update user profile picture in database
+        current_user.profile_picture = profile_picture_url
+        current_user.date_updated = datetime.utcnow()
+        
+        db.session.commit()
+        
+        logger.info(f"Profile picture updated for user {current_user.id}")
+        
+        return jsonify({
+            "success": True, 
+            "profile_picture": profile_picture_url,
+            "message": "Profile picture updated successfully"
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.exception(f"Error uploading profile picture: {str(e)}")
+        return jsonify({"success": False, "error": "Server error occurred"}), 500
+
+#-------------------- Remove Profile Picture --------------------
+@app.route('/remove-profile-picture', methods=['POST'])
+@login_required
+def remove_profile_picture():
+    try:
+        if current_user.profile_picture:
+            # Optional: Add file removal logic for local storage
+            try:
+                import os
+                from flask import current_app
+                from urllib.parse import unquote, urlparse
+                
+                # If profile_picture is a URL path like "/static/uploads/filename.jpg"
+                if current_user.profile_picture.startswith('/static/uploads/'):
+                    # Extract filename from URL path
+                    filename = os.path.basename(unquote(current_user.profile_picture))
+                    file_path = os.path.join(current_app.root_path, 'static', 'uploads', filename)
+                    
+                    # Safely delete the file if it exists
+                    if os.path.exists(file_path) and os.path.isfile(file_path):
+                        os.remove(file_path)
+                        print(f"Deleted profile picture file: {filename}")
+                        
+            except Exception as file_error:
+                # Log but don't fail if file deletion doesn't work
+                print(f"Note: Could not delete physical file: {file_error}")
+            
+            # Clear the profile picture from database
+            current_user.profile_picture = None
+            db.session.commit()
+            
+            return jsonify({'success': True, 'message': 'Profile picture removed successfully'})
+        else:
+            return jsonify({'success': False, 'error': 'No profile picture to remove'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)})
+    
 
 # -------------------- Input Sanitization --------------------
 

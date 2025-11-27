@@ -12,12 +12,13 @@ class User(db.Model, UserMixin):
     first_name = db.Column(db.String(150), nullable=False)
     last_name = db.Column(db.String(150), nullable=False)
     username = db.Column(db.String(150), nullable=False)
-    other_names = db.Column(db.String(150), nullable=True)  # optional middle/other names
+    other_names = db.Column(db.String(150), nullable=True)  
     email = db.Column(db.String(150), unique=True, nullable=False)
     password = db.Column(db.String(200), nullable=False)
-    role = db.Column(db.String(20), nullable=False)  # 'student' or 'officer'
-    matric_no = db.Column(db.String(50), unique=True, nullable=True)  # only for students
+    role = db.Column(db.String(20), nullable=False) 
+    matric_no = db.Column(db.String(50), unique=True, nullable=True)
     photo = db.Column(db.String(100))
+    profile_picture = db.Column(db.Text, nullable=True)
     must_change_password = db.Column(db.Boolean, default=False)
     department = db.Column(db.String(100), default="Computer Science")
     

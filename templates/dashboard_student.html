@@ -1,8 +1,309 @@
-{% extends "base.html" %}
-{% block title %}Student Dashboard - PDE Portal{% endblock %}
+ 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% block title %}Professional Diploma in Education - Student Portal{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .hover-shadow-3xl:hover { box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); }
+        .backdrop-blur-sm { backdrop-filter: blur(8px); }
+        .dropdown:hover .dropdown-menu { display: block; } /* desktop hover fallback */
+        /* small animation for mobile menu */
+        .slide-down {
+            transform-origin: top;
+            transition: transform .22s cubic-bezier(.2,.8,.2,1), opacity .18s ease;
+        }
+        .slide-down.hidden {
+            transform: scaleY(0);
+            opacity: 0;
+            height: 0;
+            pointer-events: none;
+        }
+        .slide-down.open {
+            transform: scaleY(1);
+            opacity: 1;
+            height: auto;
+            pointer-events: auto;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-gray-900 via-slate-900 to-black min-h-screen flex flex-col">
 
-{% block content %}
-<div class="min-h-screen bg-gradient-to-br from-gray-900 to-black py-8">
+    <!-- Navbar -->
+    <nav class="bg-gradient-to-r from-gray-800 to-gray-900 text-white px-6 py-4 flex items-center justify-between shadow-lg border-b border-gray-700">
+        <!-- Left: logo + title -->
+        <div class="flex items-center space-x-3">
+            <img src="{{ url_for('static', filename='images/fcetomoku-logo-2.jpg') }}"
+                 alt="FCET Omoku Logo"
+                 class="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover"
+                 onerror="this.onerror=null; this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%23374151%22/><text x=%2250%22 y=%2250%22 font-size=%2220%22 text-anchor=%22middle%22 alignment-baseline=%22middle%22 fill=%22%2310b981%22>🎓</text></svg>';">
+            <span class="font-bold text-2xl bg-gradient-to-r from-green-400 to-emerald-500 bg-clip-text text-transparent">Students Results Portal</span>
+        </div>
+
+        <!-- Right: desktop nav and hamburger -->
+        <div class="flex items-center space-x-4">
+            <!-- Desktop items (hidden on small screens) -->
+            <div class="hidden sm:flex items-center space-x-4" id="desktopNav">
+                {% if current_user.is_authenticated %}
+                    <!-- User Dropdown -->
+                    <div class="relative dropdown">
+                        <button class="flex items-center space-x-2 px-4 py-2 hover:bg-gray-700 rounded-lg transition text-green-400" aria-expanded="false">
+                            <div class="w-8 h-8 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full flex items-center justify-center">
+                                <i class="fas fa-user text-white text-sm"></i>
+                            </div>
+                            <span class="hidden sm:inline">{{ current_user.username }}</span>
+                            <i class="fas fa-chevron-down text-xs"></i>
+                        </button>
+                        <div class="dropdown-menu absolute right-0 mt-2 w-48 bg-gray-800 border border-gray-700 rounded-lg shadow-xl hidden z-50">
+                            <div class="px-4 py-3 border-b border-gray-700">
+                                <p class="text-white font-semibold text-sm">{{ current_user.full_name }}</p>
+                                <p class="text-gray-400 text-xs">{{ current_user.email }}</p>
+                                <p class="text-green-400 text-xs mt-1">
+                                    {% if current_user.role == 'student' %}
+                                        <i class="fas fa-user-graduate mr-1"></i>Student
+                                    {% else %}
+                                        <i class="fas fa-user-tie mr-1"></i>Officer
+                                    {% endif %}
+                                </p>
+                            </div>
+
+                            <button onclick="openChangePasswordModal()" class="w-full text-left px-4 py-3 text-gray-300 hover:bg-gray-700 hover:text-green-400 transition flex items-center">
+                                <i class="fas fa-key mr-3 w-4"></i> Change Password
+                            </button>
+
+                            {% if current_user.role == 'student' %}
+                                <a href="{{ url_for('dashboard_student') }}" class="block px-4 py-3 text-gray-300 hover:bg-gray-700 hover:text-green-400 transition flex items-center">
+                                    <i class="fas fa-tachometer-alt mr-3 w-4"></i> Student Dashboard
+                                </a>
+                            {% elif current_user.role == 'officer' %}
+                                <a href="{{ url_for('dashboard_officer') }}" class="block px-4 py-3 text-gray-300 hover:bg-gray-700 hover:text-green-400 transition flex items-center">
+                                    <i class="fas fa-tachometer-alt mr-3 w-4"></i> Officer Dashboard
+                                </a>
+                            {% endif %}
+
+                            <a href="{{ url_for('logout') }}" class="block px-4 py-3 text-gray-300 hover:bg-gray-700 hover:text-red-400 transition flex items-center border-t border-gray-700">
+                                <i class="fas fa-sign-out-alt mr-3 w-4"></i> Logout
+                            </a>
+                        </div>
+                    </div>
+
+                    {% if current_user.role == 'officer' %}
+                        <!-- Search dropdown (desktop) -->
+                        <div class="relative dropdown">
+                            <button class="px-4 py-2 hover:bg-gray-700 rounded-lg transition text-green-400 flex items-center">
+                                <i class="fas fa-search mr-2"></i>Search
+                                <i class="fas fa-chevron-down ml-1 text-xs"></i>
+                            </button>
+                            <div class="dropdown-menu absolute right-0 mt-2 w-48 bg-gray-800 border border-gray-700 rounded-lg shadow-xl hidden z-50">
+                                <a href="{{ url_for('search_students') }}" class="block px-4 py-3 text-gray-300 hover:bg-gray-700 hover:text-green-400 transition flex items-center">
+                                    <i class="fas fa-users mr-3 w-4"></i> Search Students
+                                </a>
+                                <a href="{{ url_for('search_results') }}" class="block px-4 py-3 text-gray-300 hover:bg-gray-700 hover:text-green-400 transition flex items-center">
+                                    <i class="fas fa-chart-bar mr-3 w-4"></i> Search Results
+                                </a>
+                            </div>
+                        </div>
+
+                        <a href="{{ url_for('bulk_actions_dashboard') }}" class="px-4 py-2 hover:bg-gray-700 rounded-lg transition text-red-400 hover:text-red-300">
+                            <i class="fas fa-trash-alt mr-2"></i>Bulk Actions
+                        </a>
+                    {% endif %}
+
+                {% else %}
+                    <!-- Guest links for desktop -->
+                    <a href="{{ url_for('home') }}" class="px-4 py-2 hover:bg-gray-700 rounded-lg transition text-emerald-500 hover:text-white">
+                        <i class="fas fa-home mr-2"></i>Home
+                    </a>
+                    <a href="{{ url_for('login') }}" class="px-4 py-2 hover:bg-gray-700 rounded-lg transition text-emerald-500 hover:text-white">
+                        <i class="fas fa-sign-in-alt mr-2"></i>Login
+                    </a>
+                    <a href="{{ url_for('register') }}" class="bg-gradient-to-r from-green-600 to-emerald-700 text-white px-4 py-2 rounded-lg hover:scale-105 transition-all duration-300">
+                        <i class="fas fa-user-plus mr-2"></i>Register
+                    </a>
+                {% endif %}
+            </div>
+
+            <!-- Mobile hamburger button -->
+            <button id="hamburgerBtn" class="sm:hidden text-green-400 hover:text-white focus:outline-none p-2" aria-label="Open menu">
+                <svg id="hamburgerIcon" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 8h16M4 16h16" />
+                </svg>
+            </button>
+        </div>
+    </nav>
+
+    <!-- MOBILE MENU: slide-down panel (Option B) -->
+    <!-- This contains all items (guest/auth, officer items, user actions, change password) -->
+    <div id="mobileMenu" class="sm:hidden slide-down hidden bg-gray-900 border-b border-gray-700 overflow-hidden">
+        <div class="px-4 py-4 space-y-3">
+            <!-- If authenticated -->
+            {% if current_user.is_authenticated %}
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full flex items-center justify-center">
+                            <i class="fas fa-user text-white"></i>
+                        </div>
+                        <div>
+                            <p class="text-white font-semibold">{{ current_user.full_name }}</p>
+                            <p class="text-gray-400 text-sm">{{ current_user.email }}</p>
+                        </div>
+                    </div>
+
+                    <div class="text-right">
+                        <p class="text-green-400 text-sm">
+                            {% if current_user.role == 'student' %}
+                                <i class="fas fa-user-graduate mr-1"></i>Student
+                            {% else %}
+                                <i class="fas fa-user-tie mr-1"></i>Officer
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+
+                <div class="border-t border-gray-800 pt-3 space-y-2">
+                    {% if current_user.role == 'student' %}
+                        <a href="{{ url_for('dashboard_student') }}" class="block px-3 py-2 rounded-lg hover:bg-gray-800 text-gray-200">
+                            <i class="fas fa-tachometer-alt mr-2"></i> Student Dashboard
+                        </a>
+                    {% elif current_user.role == 'officer' %}
+                        <a href="{{ url_for('dashboard_officer') }}" class="block px-3 py-2 rounded-lg hover:bg-gray-800 text-gray-200">
+                            <i class="fas fa-tachometer-alt mr-2"></i> Officer Dashboard
+                        </a>
+
+                        <!-- Collapsible officer search in mobile menu -->
+                        <div>
+                            <button type="button" class="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-gray-800 text-gray-200" data-toggle="officerSearch">
+                                <span><i class="fas fa-search mr-2"></i>Search</span>
+                                <i class="fas fa-chevron-down text-xs"></i>
+                            </button>
+                            <div id="officerSearch" class="hidden pl-4 mt-2 space-y-2">
+                                <a href="{{ url_for('search_students') }}" class="block px-3 py-2 rounded-lg hover:bg-gray-800 text-gray-200">
+                                    <i class="fas fa-users mr-2"></i> Search Students
+                                </a>
+                                <a href="{{ url_for('search_results') }}" class="block px-3 py-2 rounded-lg hover:bg-gray-800 text-gray-200">
+                                    <i class="fas fa-chart-bar mr-2"></i> Search Results
+                                </a>
+                            </div>
+                        </div>
+
+                        <a href="{{ url_for('bulk_actions_dashboard') }}" class="block px-3 py-2 rounded-lg hover:bg-gray-800 text-red-400">
+                            <i class="fas fa-trash-alt mr-2"></i> Bulk Actions
+                        </a>
+                    {% endif %}
+
+                    <button onclick="openChangePasswordModal()" class="w-full text-left px-3 py-2 rounded-lg hover:bg-gray-800 text-gray-200">
+                        <i class="fas fa-key mr-2"></i> Change Password
+                    </button>
+
+                    <a href="{{ url_for('logout') }}" class="block px-3 py-2 rounded-lg hover:bg-gray-800 text-red-400">
+                        <i class="fas fa-sign-out-alt mr-2"></i> Logout
+                    </a>
+                </div>
+
+            {% else %}
+                <!-- Guest -->
+                <div class="space-y-3">
+                    <a href="{{ url_for('home') }}" class="block px-3 py-2 rounded-lg hover:bg-gray-800 text-emerald-400">
+                        <i class="fas fa-home mr-2"></i> Home
+                    </a>
+                    <a href="{{ url_for('login') }}" class="block px-3 py-2 rounded-lg hover:bg-gray-800 text-emerald-400">
+                        <i class="fas fa-sign-in-alt mr-2"></i> Login
+                    </a>
+                    <a href="{{ url_for('register') }}" class="block px-3 py-2 rounded-lg hover:bg-gray-800 text-white bg-green-600 text-center rounded-md">
+                        <i class="fas fa-user-plus mr-2"></i> Register
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Flash Messages -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4 space-y-2" id="flash-messages">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flex items-center space-x-3 px-6 py-4 rounded-xl shadow-lg border border-gray-700 flash
+                        {% if category == 'success' %}bg-green-900 bg-opacity-20 text-green-400 border-green-800
+                        {% elif category == 'danger' %}bg-red-900 bg-opacity-20 text-red-400 border-red-800
+                        {% else %}bg-gray-800 bg-opacity-50 text-gray-300 border-gray-700{% endif %}">
+                        <div class="flex-shrink-0">
+                            {% if category == 'success' %}
+                                <i class="fas fa-check-circle text-green-400 text-lg"></i>
+                            {% elif category == 'danger' %}
+                                <i class="fas fa-exclamation-circle text-red-400 text-lg"></i>
+                            {% else %}
+                                <i class="fas fa-info-circle text-gray-400 text-lg"></i>
+                            {% endif %}
+                        </div>
+                        <span class="flex-1 font-medium">{{ message }}</span>
+                        <button onclick="this.parentElement.remove()" class="text-gray-500 hover:text-gray-300 transition-colors">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <!-- Main Content -->
+    <main class="flex-1">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Change Password Modal -->
+    <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden" id="changePasswordModal">
+        <div class="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl border border-gray-700 max-w-md w-full mx-4">
+            <div class="flex items-center justify-between p-6 border-b border-gray-700">
+                <h3 class="text-xl font-bold text-white">Change Password</h3>
+                <button type="button" onclick="closeChangePasswordModal()" class="text-gray-400 hover:text-white">
+                    <i class="fas fa-times text-lg"></i>
+                </button>
+            </div>
+
+            <form method="POST" action="{{ url_for('change_student_password') if current_user.role == 'student' else url_for('reset_password') }}" class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Current Password</label>
+                    <input type="password" name="current_password"
+                           class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-300"
+                           required>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">New Password</label>
+                    <input type="password" name="new_password"
+                           class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-300"
+                           required minlength="8">
+                    <p class="text-gray-400 text-xs mt-1">Password must be at least 8 characters long</p>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Confirm New Password</label>
+                    <input type="password" name="confirm_password"
+                           class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-300"
+                           required>
+                </div>
+
+                <div class="flex space-x-3 pt-4">
+                    <button type="button" onclick="closeChangePasswordModal()"
+                            class="flex-1 bg-gray-600 hover:bg-gray-700 text-white py-3 rounded-xl font-semibold transition-all duration-300">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                            class="flex-1 bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-semibold transition-all duration-300">
+                        Change Password
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <div class="min-h-screen bg-gradient-to-br from-gray-900 to-black py-8">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         <!-- Header Section -->
@@ -16,24 +317,25 @@
         </div>
 
         <!-- Profile and Stats Section -->
-        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
             <!-- Profile Card -->
             <div class="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-6 border border-gray-700 lg:col-span-1">
                 <div class="text-center">
                     <!-- Profile Photo -->
-                    <div class="relative inline-block mb-4">
-                        <div id="profilePhoto" class="w-24 h-24 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full flex items-center justify-center mx-auto border-4 border-gray-700 overflow-hidden">
+                    <div class="relative inline-block mb-4 group">
+                        <div class="w-24 h-24 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full flex items-center justify-center mx-auto border-4 border-gray-700 overflow-hidden cursor-pointer"
+                             onclick="openPhotoOptions()">
                             {% if current_user.profile_picture %}
                                 <img src="{{ current_user.profile_picture }}" alt="Profile" class="w-full h-full object-cover">
                             {% else %}
                                 <i class="fas fa-user-graduate text-white text-2xl"></i>
                             {% endif %}
+                            
+                            <!-- Hover Overlay -->
+                            <div class="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                <i class="fas fa-camera text-white text-xl"></i>
+                            </div>
                         </div>
-                        <!-- Photo Upload Button -->
-                        <button onclick="openPhotoUpload()" 
-                                class="absolute bottom-0 right-0 bg-green-500 text-white p-2 rounded-full hover:bg-green-600 transition-all duration-300 transform hover:scale-110">
-                            <i class="fas fa-camera text-sm"></i>
-                        </button>
                     </div>
                     
                     <h3 class="text-xl font-bold text-white mb-2">{{ current_user.full_name }}</h3>
@@ -48,6 +350,16 @@
                             <i class="fas fa-user mr-3 text-blue-400 w-4"></i>
                             <span>{{ current_user.username }}</span>
                         </div>
+                        <div class="flex items-center text-gray-300 text-sm">
+                            <i class="fas fa-building mr-3 text-yellow-400 w-4"></i>
+                            <span>{{ current_user.department }}</span>
+                        </div>
+                        {% if current_user.school %}
+                        <div class="flex items-center text-gray-300 text-sm">
+                            <i class="fas fa-university mr-3 text-purple-400 w-4"></i>
+                            <span>{{ current_user.school }}</span>
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -56,7 +368,7 @@
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 lg:col-span-3">
                 <!-- CGPA Card -->
                 <div class="bg-gradient-to-br from-green-900 to-emerald-800 rounded-2xl p-6 border border-green-700">
-                    <div class="flex items-center justify-between">
+                    <div class="flex items-center justify-between mb-4">
                         <div>
                             <p class="text-green-200 text-sm">Current CGPA</p>
                             <p class="text-4xl font-bold text-white">
@@ -71,11 +383,44 @@
                             <i class="fas fa-star text-green-300 text-xl"></i>
                         </div>
                     </div>
+                    
+                    <!-- Additional CGPA Information -->
+                    <div class="space-y-2 mt-4">
+                        <div class="flex justify-between text-sm">
+                            <span class="text-green-200">Academic Standing</span>
+                            <span class="text-white font-medium">
+                                {% if results and results[0].semester_cgpa %}
+                                    {% if results[0].semester_cgpa >= 4.5 %}
+                                        1<sup>st</sup> Class
+                                    {% elif results[0].semester_cgpa >= 3.5 %}
+                                        2<sup>nd</sup> Class Upper
+                                    {% elif results[0].semester_cgpa >= 2.5 %}
+                                        2<sup>nd</sup> Class Lower
+                                    {% elif results[0].semester_cgpa >= 1.5 %}
+                                        3<sup>rd</sup> Class
+                                    {% else %}
+                                        Pass
+                                    {% endif %}
+                                {% else %}
+                                    N/A
+                                {% endif %}
+
+                            </span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-green-200">Max CGPA</span>
+                            <span class="text-white font-medium">5.00</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-green-200">GPA Scale</span>
+                            <span class="text-white font-medium">5-Point</span>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Courses Card -->
                 <div class="bg-gradient-to-br from-blue-900 to-blue-800 rounded-2xl p-6 border border-blue-700">
-                    <div class="flex items-center justify-between">
+                    <div class="flex items-center justify-between mb-4">
                         <div>
                             <p class="text-blue-200 text-sm">Courses Taken</p>
                             <p class="text-4xl font-bold text-white">
@@ -90,11 +435,45 @@
                             <i class="fas fa-book text-blue-300 text-xl"></i>
                         </div>
                     </div>
+                    
+                    <!-- Additional Course Information -->
+                    <div class="space-y-2 mt-4">
+                        <div class="flex justify-between text-sm">
+                            <span class="text-blue-200">Total Credits</span>
+                            <span class="text-white font-medium">
+                                {% if results %}
+                                    {{ results|sum(attribute='credit_unit') }}
+                                {% else %}
+                                    0
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-blue-200">Current Level</span>
+                            <span class="text-white font-medium">
+                                {% if results %}
+                                    {{ (results|length / 10 + 100)|int }} Level
+                                {% else %}
+                                    100 Level
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-blue-200">Semester</span>
+                            <span class="text-white font-medium">
+                                {% if results and results[0].semester %}
+                                    {{ results[0].semester }}
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Performance Card -->
                 <div class="bg-gradient-to-br from-purple-900 to-purple-800 rounded-2xl p-6 border border-purple-700">
-                    <div class="flex items-center justify-between">
+                    <div class="flex items-center justify-between mb-4">
                         <div>
                             <p class="text-purple-200 text-sm">Average Score</p>
                             <p class="text-4xl font-bold text-white">
@@ -109,26 +488,54 @@
                             <i class="fas fa-chart-line text-purple-300 text-xl"></i>
                         </div>
                     </div>
+                    
+                    <!-- Additional Performance Information -->
+                    <div class="space-y-2 mt-4">
+                        <div class="flex justify-between text-sm">
+                            <span class="text-purple-200">Pass Rate</span>
+                            <span class="text-white font-medium">
+                                {% if results %}
+                                    {% set passed = results|selectattr('score', '>=', 40)|list|length %}
+                                    {% set total = results|length %}
+                                    {{ (passed / total * 100)|round(1) if total > 0 else 0 }}%
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-purple-200">Highest Score</span>
+                            <span class="text-white font-medium">
+                                {% if results %}
+                                    {% set highest_score = results|map(attribute='score')|max %}
+                                    {{ highest_score|default(0)|int if highest_score is not none else 'N/A' }}
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-purple-200">Performance Trend</span>
+                            <span class="text-white font-medium">
+                                {% if results and average_score is defined and average_score > 0 %}
+                                    {% if average_score >= 70 %}
+                                        <i class="fas fa-arrow-up text-green-400"></i> Excellent
+                                    {% elif average_score >= 50 %}
+                                        <i class="fas fa-minus text-yellow-400"></i> Good
+                                    {% else %}
+                                        <i class="fas fa-arrow-down text-red-400"></i> Needs Improvement
+                                    {% endif %}
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Action Buttons -->
-        <div class="flex flex-col sm:flex-row gap-4 mb-8">
-            <button onclick="downloadResultsPDF()" 
-                    class="bg-gradient-to-r from-green-600 to-emerald-700 text-white px-6 py-3 rounded-xl font-semibold hover:shadow-2xl transition-all duration-300 hover:scale-105 transform flex items-center justify-center">
-                <i class="fas fa-file-pdf mr-2"></i>Download Results PDF
-            </button>
-            <button onclick="printResults()" 
-                    class="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-3 rounded-xl font-semibold hover:shadow-2xl transition-all duration-300 hover:scale-105 transform flex items-center justify-center">
-                <i class="fas fa-print mr-2"></i>Print Results
-            </button>
-            <button onclick="shareResults()" 
-                    class="bg-gradient-to-r from-purple-600 to-purple-700 text-white px-6 py-3 rounded-xl font-semibold hover:shadow-2xl transition-all duration-300 hover:scale-105 transform flex items-center justify-center">
-                <i class="fas fa-share-alt mr-2"></i>Share Results
-            </button>
-        </div>
-
+    
         <!-- Main Content Grid -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <!-- Results Table -->
@@ -137,7 +544,7 @@
                     <div class="flex items-center justify-between">
                         <h2 class="text-2xl font-bold text-white flex items-center">
                             <i class="fas fa-chart-bar text-green-400 mr-3"></i>
-                            Academic Results
+                            Examination Results
                         </h2>
                         <div class="flex items-center space-x-4">
                             {% if results_pagination %}
@@ -246,8 +653,8 @@
                                             'A': 'bg-green-500 bg-opacity-20 text-green-400 print:bg-green-100 print:text-green-800 print:border print:border-green-300',
                                             'B': 'bg-blue-500 bg-opacity-20 text-blue-400 print:bg-blue-100 print:text-blue-800 print:border print:border-blue-300',
                                             'C': 'bg-purple-500 bg-opacity-20 text-purple-400 print:bg-purple-100 print:text-purple-800 print:border print:border-purple-300',
-                                            'D': 'bg-yellow-500 bg-opacity-20 text-yellow-400 print:bg-yellow-100 print:text-yellow-800 print:border print:border-yellow-300',
-                                            'E': 'bg-pink-500 bg-opacity-20 text-pink-400 print:bg-pink-100 print:text-pink-800 print:border print:border-pink-300',
+                                            'D': 'bg-pink-500 bg-opacity-20 text-pink-400 print:bg-pink-100 print:text-pink-800 print:border print:border-pink-300',
+                                            'E': 'bg-yellow-500 bg-opacity-20 text-yellow-400 print:bg-yellow-100 print:text-yellow-800 print:border print:border-yellow-300',
                                             'F': 'bg-red-500 bg-opacity-20 text-red-400 print:bg-red-100 print:text-red-800 print:border print:border-red-300'
                                         } %}
                                         <span class="px-3 py-1 rounded-full text-sm font-medium {{ grade_color.get(r.grade, 'bg-gray-500 bg-opacity-20 text-gray-400 print:bg-gray-100 print:text-gray-800 print:border print:border-gray-300') }}">
@@ -255,7 +662,7 @@
                                         </span>
                                     </td>
                                     <td class="py-4 px-4 print:text-black">
-                                        <span class="px-2 py-1 rounded text-xs font-medium {% if r.remark == 'Excellent' %}bg-green-500 bg-opacity-20 text-green-400 print:bg-green-100 print:text-green-800 print:border print:border-green-300{% elif r.remark == 'Fail' %}bg-red-500 bg-opacity-20 text-red-400 print:bg-red-100 print:text-red-800 print:border print:border-red-300{% else %}bg-yellow-500 bg-opacity-20 text-yellow-400 print:bg-yellow-100 print:text-yellow-800 print:border print:border-yellow-300{% endif %}">
+                                        <span class="px-2 py-1 rounded text-xs font-medium {% if r.remark == 'Excellent' or r.remark == 'Good' or r.remark == 'Pass' %}bg-green-500 bg-opacity-20 text-green-400 print:bg-green-100 print:text-green-800 print:border print:border-green-300{% elif r.remark == 'Fail' %}bg-red-500 bg-opacity-20 text-red-400 print:bg-red-100 print:text-red-800 print:border print:border-red-300{% else %}bg-yellow-500 bg-opacity-20 text-yellow-400 print:bg-yellow-100 print:text-yellow-800 print:border print:border-yellow-300{% endif %}">
                                             {{ r.remark }}
                                         </span>
                                     </td>
@@ -333,10 +740,10 @@
             </div>
 
             <!-- Charts and Analytics Sidebar -->
-            <div class="space-y-6">
+            <div class="space-y-6 text-white">
                 <!-- Grade Distribution Chart -->
                 {% if results %}
-                <div class="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-6 border border-gray-700">
+                <div class="bg-gradient-to-br from-gray-500 to-gray-700 rounded-2xl p-6 border border-gray-800">
                     <h3 class="text-xl font-bold text-white mb-4 flex items-center">
                         <i class="fas fa-chart-pie text-blue-400 mr-3"></i>
                         Grade Distribution
@@ -432,28 +839,227 @@
 <div id="photoUploadModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
     <div class="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-6 border border-gray-700 w-full max-w-md mx-4">
         <h3 class="text-xl font-bold text-white mb-4">Update Profile Photo</h3>
-        <form id="photoUploadForm" enctype="multipart/form-data">
-            <input type="file" id="photoInput" accept="image/*" class="hidden">
+        <form id="photoUploadForm" enctype="multipart/form-data" action="{{ url_for('upload_profile_picture') }}" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="file" id="photoInput" name="profile_picture" accept="image/*" class="hidden" required>
             <div class="border-2 border-dashed border-gray-600 rounded-xl p-8 text-center mb-4 cursor-pointer" 
-                 onclick="document.getElementById('photoInput').click()">
+                 onclick="document.getElementById('photoInput').click()" id="uploadArea">
                 <i class="fas fa-cloud-upload-alt text-gray-400 text-3xl mb-2"></i>
                 <p class="text-gray-400">Click to upload photo</p>
                 <p class="text-gray-500 text-sm">JPG, PNG (Max 2MB)</p>
+            </div>
+            <div id="fileInfo" class="hidden mb-4 p-3 bg-gray-700 rounded-lg">
+                <p class="text-green-400 text-sm flex items-center">
+                    <i class="fas fa-check-circle mr-2"></i>
+                    <span id="fileName">File selected</span>
+                </p>
             </div>
             <div class="flex gap-3">
                 <button type="button" onclick="closePhotoUpload()" 
                         class="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-3 rounded-xl transition-all duration-300">
                     Cancel
                 </button>
-                <button type="button" onclick="uploadPhoto()" 
-                        class="flex-1 bg-gradient-to-r from-green-600 to-emerald-700 text-white py-3 rounded-xl hover:shadow-xl transition-all duration-300">
-                    Upload
+                <button type="submit" id="uploadButton"
+                        class="flex-1 bg-gradient-to-r from-green-600 to-emerald-700 text-white py-3 rounded-xl hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled>
+                    <i class="fas fa-upload mr-2"></i>
+                    Upload Photo
                 </button>
             </div>
         </form>
     </div>
 </div>
 
+<!-- Photo Options Modal -->
+<div id="photoOptionsModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-6 border border-gray-700 w-full max-w-sm mx-4">
+        <h3 class="text-xl font-bold text-white mb-4">Profile Photo</h3>
+        
+        <!-- Current Photo Preview -->
+        <div class="text-center mb-6">
+            <div class="w-32 h-32 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full flex items-center justify-center mx-auto border-4 border-gray-700 overflow-hidden mb-4">
+                {% if current_user.profile_picture %}
+                    <img src="{{ current_user.profile_picture }}" alt="Profile" class="w-full h-full object-cover" id="currentPhotoPreview">
+                {% else %}
+                    <i class="fas fa-user-graduate text-white text-2xl"></i>
+                {% endif %}
+            </div>
+            <p class="text-gray-300 text-sm">{{ current_user.full_name }}</p>
+        </div>
+        
+        <div class="space-y-3">
+            <button onclick="openPhotoUploadFromOptions()" 
+                    class="w-full text-left p-4 bg-gray-700 hover:bg-gray-600 rounded-xl transition-all duration-300 flex items-center justify-between group">
+                <span class="flex items-center">
+                    <i class="fas fa-camera text-green-400 mr-3"></i>
+                    Update Photo
+                </span>
+                <i class="fas fa-chevron-right text-gray-400 group-hover:text-green-400 transition-colors"></i>
+            </button>
+            
+            {% if current_user.profile_picture %}
+            <button onclick="viewFullPhoto()" 
+                    class="w-full text-left p-4 bg-gray-700 hover:bg-gray-600 rounded-xl transition-all duration-300 flex items-center justify-between group">
+                <span class="flex items-center">
+                    <i class="fas fa-eye text-blue-400 mr-3"></i>
+                    View Photo
+                </span>
+                <i class="fas fa-chevron-right text-gray-400 group-hover:text-blue-400 transition-colors"></i>
+            </button>
+            
+            <button onclick="removeProfilePhoto()" 
+                    class="w-full text-left p-4 bg-gray-700 hover:bg-gray-600 rounded-xl transition-all duration-300 flex items-center justify-between group">
+                <span class="flex items-center">
+                    <i class="fas fa-trash text-red-400 mr-3"></i>
+                    Remove Photo
+                </span>
+                <i class="fas fa-chevron-right text-gray-400 group-hover:text-red-400 transition-colors"></i>
+            </button>
+            {% endif %}
+            
+            <button onclick="closePhotoOptions()" 
+                    class="w-full text-center p-4 bg-gray-700 hover:bg-gray-600 rounded-xl transition-all duration-300 text-gray-300 hover:text-white mt-4">
+                Cancel
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Full Photo View Modal -->
+<div id="fullPhotoModal" class="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 hidden">
+    <div class="relative max-w-4xl max-h-full mx-4">
+        {% if current_user.profile_picture %}
+            <img src="{{ current_user.profile_picture }}" alt="Profile Photo" class="max-w-full max-h-full rounded-lg">
+        {% endif %}
+        <button onclick="closeFullPhoto()" 
+                class="absolute top-4 right-4 bg-gray-800 hover:bg-gray-700 text-white p-3 rounded-full transition-all duration-300">
+            <i class="fas fa-times text-xl"></i>
+        </button>
+    </div>
+</div>
+
+<!-- Loading Spinner -->
+<div id="loadingSpinner" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-gray-800 rounded-2xl p-8 border border-gray-700 text-center">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto mb-4"></div>
+        <p class="text-white">Uploading photo...</p>
+    </div>
+</div>
+
+<br><br>
+<!-- Action Buttons --->
+        <div class="mb-8">
+            <div class="text-center mb-4">
+                <h3 class="text-lg font-semibold text-gray-300 flex items-center justify-center">
+                    <i class="fas fa-download mr-2 text-green-400"></i>
+                    Export, Print & Share Results
+                </h3>
+            </div>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <button onclick="downloadResultsPDF()" 
+                        class="group bg-gradient-to-r from-green-600 to-emerald-700 text-white px-6 py-3 rounded-xl font-semibold hover:shadow-2xl transition-all duration-300 hover:scale-105 transform flex items-center justify-center border border-green-500">
+                    <i class="fas fa-file-pdf mr-2 group-hover:animate-bounce"></i>
+                    Download PDF
+                    <i class="fas fa-arrow-down ml-2 text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300"></i>
+                </button>
+                <button onclick="printResults()" 
+                        class="group bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-3 rounded-xl font-semibold hover:shadow-2xl transition-all duration-300 hover:scale-105 transform flex items-center justify-center border border-blue-500">
+                    <i class="fas fa-print mr-2 group-hover:animate-pulse"></i>
+                    Print Results
+                    <i class="fas fa-external-link-alt ml-2 text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300"></i>
+                </button>
+                <button onclick="shareResults()" 
+                        class="group bg-gradient-to-r from-purple-600 to-purple-700 text-white px-6 py-3 rounded-xl font-semibold hover:shadow-2xl transition-all duration-300 hover:scale-105 transform flex items-center justify-center border border-purple-500">
+                    <i class="fas fa-share-alt mr-2 group-hover:animate-spin"></i>
+                    Share Results
+                    <i class="fas fa-share ml-2 text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300"></i>
+                </button>
+            </div>
+        </div>
+
+
+
+    <!-- Footer -->
+    <footer class="border-t border-gray-800 py-12 bg-gradient-to-b from-gray-900 to-black">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <!-- Institution Info -->
+                <div>
+                    <div class="flex items-center space-x-2 mb-4">
+                        <div class="w-8 h-8 bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-graduation-cap text-white text-sm"></i>
+                        </div>
+                        <span class="text-xl font-bold text-white">PDE Portal</span>
+                    </div>
+                    <p class="text-gray-400 text-sm">
+                        Professional Diploma in Education Program<br>
+                        School of Education<br>
+                        Federal College of Education Technical, Omoku<br>
+                        Rivers State, Nigeria
+                    </p>
+                </div>
+
+                <!-- Academic Resources -->
+                <div>
+                    <h4 class="text-white font-semibold mb-4">Academic Resources</h4>
+                    <ul class="space-y-2 text-sm text-gray-400">
+                        <li>
+                            <a href="#" class="hover:text-green-400 transition-colors flex items-center space-x-2">
+                                <i class="fas fa-book w-4"></i><span>Course Materials</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" class="hover:text-green-400 transition-colors flex items-center space-x-2">
+                                <i class="fas fa-laptop w-4"></i><span>eLearning Portal</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" class="hover:text-green-400 transition-colors flex items-center space-x-2">
+                                <i class="fas fa-chalkboard-teacher w-4"></i><span>Teaching Practice</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Student Support -->
+                <div>
+                    <h4 class="text-white font-semibold mb-4">Student Support</h4>
+                    <ul class="space-y-2 text-sm text-gray-400">
+                        <li>
+                            <a href="#" class="hover:text-green-400 transition-colors flex items-center space-x-2">
+                                <i class="fas fa-chart-bar w-4"></i><span>Results Portal</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" class="hover:text-green-400 transition-colors flex items-center space-x-2">
+                                <i class="fas fa-calendar-alt w-4"></i><span>Exam Schedule</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" class="hover:text-green-400 transition-colors flex items-center space-x-2">
+                                <i class="fas fa-clock w-4"></i><span>Academic Calendar</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Contact Info -->
+                <div>
+                    <h4 class="text-white font-semibold mb-4">Contact</h4>
+                    <ul class="space-y-3 text-sm text-gray-400">
+                        <li class="flex items-center space-x-3"><i class="fas fa-envelope text-green-400"></i><span>pde@fcetomoku.edu.ng</span></li>
+                        <li class="flex items-center space-x-3"><i class="fas fa-phone text-green-400"></i><span>+234 XXX XXX XXXX</span></li>
+                        <li class="flex items-center space-x-3"><i class="fas fa-map-marker-alt text-green-400"></i><span>Omoku, Rivers State</span></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="border-t border-gray-800 mt-8 pt-8 text-center text-emerald-500 text-sm">
+                <p>&copy; 2025 Federal College of Education Technical, Omoku. Professional Diploma in Education Program.</p>
+                <p class="mt-2 text-white">Powered by <span class="mt-2 text-blue-600">Rigel IT Consultz</span></p>
+            </div>
+        </div>
+    </footer>
 
 <!-- Include Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -464,10 +1070,6 @@
 <style>
 .hover\:bg-gray-750:hover {
     background-color: rgba(55, 65, 81, 0.5);
-}
-
-#profilePhoto {
-    background: linear-gradient(135deg, #10b981, #059669);
 }
 
 /* Print Styles */
@@ -537,16 +1139,36 @@
     }
 }
 
-/* Chart.js legend text color - Force white text */
-.chartjs-legend .chartjs-legend-item {
+/* Force white text for chart legend */
+.chartjs-legend {
     color: white !important;
 }
 
 .chartjs-legend-text {
     color: white !important;
+    fill: white !important;
+}
+
+.chartjs-legend-item {
+    color: white !important;
+}
+
+.chartjs-legend li {
+    color: white !important;
 }
 
 .chartjs-legend li span {
+    color: white !important;
+}
+
+/* Ensure all text in the donut chart card is white */
+.bg-gradient-to-br.from-gray-800.to-gray-900 .text-gray-400,
+.bg-gradient-to-br.from-gray-800.to-gray-900 .text-gray-300 {
+    color: white !important;
+}
+
+/* Target the canvas specifically for white text */
+#gradeChart {
     color: white !important;
 }
 </style>
@@ -557,6 +1179,196 @@ document.addEventListener('DOMContentLoaded', function() {
     {% if results %}
     initializeGradeChart();
     {% endif %}
+    
+    // Initialize file upload handlers
+    initializeFileUpload();
+});
+
+// File Upload Functionality
+function initializeFileUpload() {
+    const fileInput = document.getElementById('photoInput');
+    const uploadButton = document.getElementById('uploadButton');
+    const fileInfo = document.getElementById('fileInfo');
+    const fileName = document.getElementById('fileName');
+    const uploadArea = document.getElementById('uploadArea');
+    
+    fileInput.addEventListener('change', function(e) {
+        if (this.files && this.files[0]) {
+            const file = this.files[0];
+            const fileSize = file.size / 1024 / 1024; // MB
+            const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+            
+            // Validate file type
+            if (!allowedTypes.includes(file.type)) {
+                showNotification('Please select a valid image file (JPG, PNG, GIF).', 'error');
+                this.value = '';
+                return;
+            }
+            
+            // Validate file size (2MB max)
+            if (fileSize > 2) {
+                showNotification('File size must be less than 2MB.', 'error');
+                this.value = '';
+                return;
+            }
+            
+            // Show file info and enable upload button
+            fileName.textContent = `Selected: ${file.name} (${fileSize.toFixed(2)} MB)`;
+            fileInfo.classList.remove('hidden');
+            uploadButton.disabled = false;
+            
+            // Show preview
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                uploadArea.innerHTML = `
+                    <img src="${e.target.result}" alt="Preview" class="w-32 h-32 object-cover rounded-lg mx-auto mb-2">
+                    <p class="text-green-400 text-sm">Preview</p>
+                `;
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+}
+
+// Photo Options Functions
+function openPhotoOptions() {
+    document.getElementById('photoOptionsModal').classList.remove('hidden');
+}
+
+function closePhotoOptions() {
+    document.getElementById('photoOptionsModal').classList.add('hidden');
+}
+
+function openPhotoUploadFromOptions() {
+    closePhotoOptions();
+    openPhotoUpload();
+}
+
+function viewFullPhoto() {
+    closePhotoOptions();
+    document.getElementById('fullPhotoModal').classList.remove('hidden');
+}
+
+function closeFullPhoto() {
+    document.getElementById('fullPhotoModal').classList.add('hidden');
+}
+
+async function removeProfilePhoto() {
+    if (!confirm('Are you sure you want to remove your profile photo?')) {
+        return;
+    }
+    
+    const loadingSpinner = document.getElementById('loadingSpinner');
+    loadingSpinner.classList.remove('hidden');
+    
+    try {
+        const response = await fetch('{{ url_for("remove_profile_picture") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': '{{ csrf_token() }}'
+            }
+        });
+        
+        const data = await response.json();
+        loadingSpinner.classList.add('hidden');
+        
+        if (data.success) {
+            // Update profile photo display
+            const profilePhotoContainer = document.querySelector('.relative.inline-block .w-24.h-24');
+            profilePhotoContainer.innerHTML = `
+                <i class="fas fa-user-graduate text-white text-2xl"></i>
+                <div class="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <i class="fas fa-camera text-white text-xl"></i>
+                </div>
+            `;
+            
+            // Update current photo preview
+            const currentPhotoPreview = document.getElementById('currentPhotoPreview');
+            if (currentPhotoPreview) {
+                currentPhotoPreview.parentElement.innerHTML = '<i class="fas fa-user-graduate text-white text-2xl"></i>';
+            }
+            
+            closePhotoOptions();
+            showNotification('Profile photo removed successfully!', 'success');
+        } else {
+            showNotification(data.error || 'Failed to remove photo.', 'error');
+        }
+    } catch (error) {
+        loadingSpinner.classList.add('hidden');
+        console.error('Remove photo error:', error);
+        showNotification('An error occurred. Please try again.', 'error');
+    }
+}
+
+// Photo Upload Functions
+function openPhotoUpload() {
+    document.getElementById('photoUploadModal').classList.remove('hidden');
+}
+
+function closePhotoUpload() {
+    document.getElementById('photoUploadModal').classList.add('hidden');
+    // Reset form
+    document.getElementById('photoUploadForm').reset();
+    document.getElementById('fileInfo').classList.add('hidden');
+    document.getElementById('uploadButton').disabled = true;
+    document.getElementById('uploadArea').innerHTML = `
+        <i class="fas fa-cloud-upload-alt text-gray-400 text-3xl mb-2"></i>
+        <p class="text-gray-400">Click to upload photo</p>
+        <p class="text-gray-500 text-sm">JPG, PNG (Max 2MB)</p>
+    `;
+}
+
+// Handle form submission
+document.getElementById('photoUploadForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const loadingSpinner = document.getElementById('loadingSpinner');
+    
+    // Show loading spinner
+    loadingSpinner.classList.remove('hidden');
+    
+    fetch(this.action, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        loadingSpinner.classList.add('hidden');
+        
+        if (data.success) {
+            // Update profile photo display
+            const profilePhotoContainer = document.querySelector('.relative.inline-block .w-24.h-24');
+            profilePhotoContainer.innerHTML = `
+                <img src="${data.profile_picture}" alt="Profile" class="w-full h-full object-cover">
+                <div class="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <i class="fas fa-camera text-white text-xl"></i>
+                </div>
+            `;
+            
+            // Update current photo preview
+            const currentPhotoPreview = document.getElementById('currentPhotoPreview');
+            if (currentPhotoPreview) {
+                currentPhotoPreview.src = data.profile_picture;
+            }
+            
+            closePhotoUpload();
+            closePhotoOptions();
+            showNotification('Profile photo updated successfully!', 'success');
+        } else {
+            showNotification(data.error || 'Failed to upload photo. Please try again.', 'error');
+        }
+    })
+    .catch(error => {
+        loadingSpinner.classList.add('hidden');
+        console.error('Upload error:', error);
+        showNotification('An error occurred during upload. Please try again.', 'error');
+    });
 });
 
 // Table sorting functionality
@@ -665,6 +1477,7 @@ function initializeGradeChart() {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            color: '#ffffff', // Force all text to be white
             plugins: {
                 legend: {
                     position: 'bottom',
@@ -675,6 +1488,7 @@ function initializeGradeChart() {
                             weight: '500'
                         },
                         padding: 15,
+                        usePointStyle: true,
                         generateLabels: function(chart) {
                             const data = chart.data;
                             if (data.labels.length && data.datasets.length) {
@@ -715,19 +1529,13 @@ function initializeGradeChart() {
         }
     });
 
-    // Force white text for legend items after chart is rendered
+    // Force white text for all chart elements after render
     setTimeout(() => {
-        const legendItems = document.querySelectorAll('.chartjs-legend .chartjs-legend-item, .chartjs-legend-text');
+        const chartContainer = document.querySelector('#gradeChart').parentElement;
+        const legendItems = chartContainer.querySelectorAll('.chartjs-legend-item, .chartjs-legend-text');
         legendItems.forEach(item => {
-            item.style.color = '#ffffff !important';
-        });
-        
-        // Also target any text elements in the legend
-        const textElements = document.querySelectorAll('.chartjs-legend *');
-        textElements.forEach(element => {
-            if (element.tagName === 'SPAN' || element.tagName === 'LI') {
-                element.style.color = '#ffffff !important';
-            }
+            item.style.color = '#ffffff';
+            item.style.fill = '#ffffff';
         });
     }, 100);
 }
@@ -738,37 +1546,6 @@ function updatePerPage(value) {
     url.searchParams.set('per_page', value);
     url.searchParams.set('page', 1); // Reset to first page
     window.location.href = url.toString();
-}
-
-// Photo Upload Functions
-function openPhotoUpload() {
-    document.getElementById('photoUploadModal').classList.remove('hidden');
-}
-
-function closePhotoUpload() {
-    document.getElementById('photoUploadModal').classList.add('hidden');
-}
-
-function uploadPhoto() {
-    const fileInput = document.getElementById('photoInput');
-    if (fileInput.files.length > 0) {
-        // Simulate upload - in real app, you'd send to server
-        const file = fileInput.files[0];
-        const reader = new FileReader();
-        
-        reader.onload = function(e) {
-            const profilePhoto = document.getElementById('profilePhoto');
-            profilePhoto.innerHTML = `<img src="${e.target.result}" alt="Profile" class="w-full h-full object-cover rounded-full">`;
-            closePhotoUpload();
-            
-            // Show success message
-            showNotification('Profile photo updated successfully!', 'success');
-        };
-        
-        reader.readAsDataURL(file);
-    } else {
-        showNotification('Please select a photo to upload.', 'error');
-    }
 }
 
 // PDF Generation
@@ -896,5 +1673,143 @@ setInterval(() => {
     console.log('Auto-refreshing student dashboard...');
     window.location.reload();
 }, 300000);
-</script>
-{% endblock %}
+
+
+
+        // Auto-hide flash messages after 5 seconds
+        setTimeout(() => {
+            document.querySelectorAll('.flash').forEach(f => f.remove());
+        }, 5000);
+
+        // Dropdown functionality (desktop & generic)
+        document.addEventListener('DOMContentLoaded', function () {
+            // Toggle dropdown on click for elements using .dropdown > button
+            document.querySelectorAll('.dropdown > button, .dropdown > .flex, .dropdown > a').forEach(button => {
+                button.addEventListener('click', function (e) {
+                    // If it's a button inside a dropdown parent
+                    const parent = this.closest('.dropdown');
+                    if (!parent) return;
+                    e.stopPropagation();
+                    const menu = parent.querySelector('.dropdown-menu');
+                    if (!menu) return;
+                    menu.classList.toggle('hidden');
+                });
+            });
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function (event) {
+                document.querySelectorAll('.dropdown-menu').forEach(menu => {
+                    if (!menu.classList.contains('hidden')) {
+                        const parent = menu.closest('.dropdown');
+                        if (parent && !parent.contains(event.target)) {
+                            menu.classList.add('hidden');
+                        }
+                    }
+                });
+            });
+
+            // Close dropdown when clicking on a dropdown item
+            document.querySelectorAll('.dropdown-menu a, .dropdown-menu button').forEach(item => {
+                item.addEventListener('click', function () {
+                    const menu = this.closest('.dropdown-menu');
+                    if (menu) menu.classList.add('hidden');
+                });
+            });
+
+            // Mobile: officer search toggle inside mobile menu
+            document.querySelectorAll('[data-toggle="officerSearch"]').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    const target = document.getElementById('officerSearch');
+                    if (!target) return;
+                    target.classList.toggle('hidden');
+                });
+            });
+        });
+
+        // Change Password Modal
+        function openChangePasswordModal() {
+            document.getElementById('changePasswordModal').classList.remove('hidden');
+        }
+        function closeChangePasswordModal() {
+            document.getElementById('changePasswordModal').classList.add('hidden');
+        }
+
+        // Close modal on outside click and on Escape
+        document.addEventListener('click', function (event) {
+            const passwordModal = document.getElementById('changePasswordModal');
+            if (passwordModal && !passwordModal.classList.contains('hidden')) {
+                if (event.target === passwordModal) closeChangePasswordModal();
+            }
+        });
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape') {
+                closeChangePasswordModal();
+            }
+        });
+
+        // MOBILE MENU: hamburger toggle + animate icon to X
+        (function () {
+            const hamburgerBtn = document.getElementById('hamburgerBtn');
+            const mobileMenu = document.getElementById('mobileMenu');
+            const hamburgerIcon = document.getElementById('hamburgerIcon');
+
+            function openMobileMenu() {
+                // show panel
+                mobileMenu.classList.remove('hidden');
+                mobileMenu.classList.remove('hidden'); // ensure
+                mobileMenu.classList.remove('hidden');
+                mobileMenu.classList.add('open');
+                mobileMenu.classList.remove('hidden');
+                // transform icon to X
+                hamburgerIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />';
+                // prevent page scroll if desired:
+                // document.documentElement.style.overflow = 'hidden';
+            }
+
+            function closeMobileMenu() {
+                mobileMenu.classList.remove('open');
+                mobileMenu.classList.add('hidden');
+                hamburgerIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" d="M4 8h16M4 16h16" />';
+                // document.documentElement.style.overflow = '';
+            }
+
+            // toggle
+            hamburgerBtn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                if (mobileMenu.classList.contains('hidden')) {
+                    openMobileMenu();
+                } else {
+                    closeMobileMenu();
+                }
+            });
+
+            // close mobile menu when clicking outside
+            document.addEventListener('click', function (event) {
+                const target = event.target;
+                if (!mobileMenu.contains(target) && !hamburgerBtn.contains(target) && !mobileMenu.classList.contains('hidden')) {
+                    closeMobileMenu();
+                }
+            });
+
+            // close when clicking a link inside mobile menu
+            mobileMenu.querySelectorAll('a, button').forEach(el => {
+                el.addEventListener('click', function () {
+                    // keep dropdown toggles (officerSearch) from closing panel until user clicks a nav link
+                    // only close for links/navigation items or logout/change password buttons
+                    // we will close the mobile menu for these actionable items:
+                    const isNavLink = this.tagName.toLowerCase() === 'a' || this.getAttribute('onclick') !== null || this.getAttribute('type') === 'button';
+                    if (isNavLink) {
+                        // small timeout to allow modal open to run (e.g., openChangePasswordModal)
+                        setTimeout(() => {
+                            if (!mobileMenu.classList.contains('hidden')) {
+                                closeMobileMenu();
+                            }
+                        }, 120);
+                    }
+                });
+            });
+        })();
+    </script>
+</body>
+</html>
+
