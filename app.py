@@ -59,6 +59,33 @@ limiter = Limiter(
     storage_uri="memory://"
 )
 
+# -------------------- Auto-Create Tables --------------------
+# Add this right after db initialization, before routes
+
+@app.before_first_request
+def create_tables():
+    """Create database tables before first request"""
+    try:
+        db.create_all()
+        print("🎉 Database tables created successfully!")
+        
+        # Log the tables that were created
+        from sqlalchemy import inspect
+        inspector = inspect(db.engine)
+        tables = inspector.get_table_names()
+        print(f"📊 Tables found: {tables}")
+        
+    except Exception as e:
+        print(f"💥 Table creation error: {e}")
+
+# Or use this alternative approach:
+with app.app_context():
+    try:
+        db.create_all()
+        print("✅ Tables ready!")
+    except Exception as e:
+        print(f"⚠️ Table note: {e}")
+
 # Login Manager
 login_manager = LoginManager()
 login_manager.init_app(app)
