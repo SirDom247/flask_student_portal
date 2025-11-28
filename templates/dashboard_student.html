@@ -267,6 +267,7 @@
             </div>
 
             <form method="POST" action="{{ url_for('change_student_password') if current_user.role == 'student' else url_for('reset_password') }}" class="p-6 space-y-4">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div>
                     <label class="block text-sm font-medium text-gray-300 mb-2">Current Password</label>
                     <input type="password" name="current_password"

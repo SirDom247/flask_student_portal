@@ -9,6 +9,7 @@
           action="{{ url_for('edit_student', student_id=student.id) }}" 
           method="POST"
           class="bg-white p-6 rounded-2xl shadow space-y-6">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
         <!-- First Name -->
         <div>
