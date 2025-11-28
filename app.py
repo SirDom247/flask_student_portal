@@ -37,7 +37,7 @@ def fix_database_url():
     return database_url
 
 # Set the fixed database URL
-os.environ['DATABASE_URL'] = fix_database_url() or 'sqlite:///pde_portal.db'
+
 
 # -------------------- App Initialization --------------------
 app = Flask(__name__)
@@ -55,7 +55,7 @@ csrf.init_app(app)
 limiter = Limiter(
     get_remote_address,
     app=app,
-    default_limits=["1000 per day", "100 per hour"],
+    default_limits=["5000 per day", "2000 per hour"],
     storage_uri="memory://"
 )
 
@@ -802,7 +802,6 @@ def validate_password_complexity(password):
 # -------------------- Register/Login/Logout --------------------
 
 @app.route("/register", methods=["GET", "POST"])
-@limiter.limit("3 per minute")
 def register():
     if request.method == "POST":
         first_name = request.form.get('first_name', '').strip()
@@ -859,8 +858,6 @@ def register():
     return render_template("register.html")
 
 @app.route("/login", methods=["GET", "POST"])
-@limiter.limit("10 per minute")
-@limiter.limit("30 per hour")
 def login():
     if request.method == "POST":
         email = request.form.get('email', '').strip()
@@ -2604,11 +2601,23 @@ def health_check():
         })
         return jsonify(health_status), 500
 
+
+@app.route("/debug/db")
+def debug_db():
+    try:
+        from models import User
+        # Try to query users (will fail if no table)
+        users = User.query.all()
+        return f"✅ Database working! Users: {len(users)}"
+    except Exception as e:
+        return f"❌ Database error: {str(e)}"
+
 # -------------------- # Minimal health check for Render --------------------
     
 @app.route("/health")
 def health():
     return "OK", 200
+
 
 # -------------------- Run App --------------------
 if __name__ == "__main__":
