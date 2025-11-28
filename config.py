@@ -5,13 +5,16 @@ from datetime import timedelta
 load_dotenv()
 
 class Config:
-    SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-secret-key-change-in-production'
-
+    # Security
+    SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
     
+    # Database - Render provides DATABASE_URL
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL', 'sqlite:///pde_portal.db')
-    # ... rest of your config
+    if SQLALCHEMY_DATABASE_URI and SQLALCHEMY_DATABASE_URI.startswith("postgres://"):
+        SQLALCHEMY_DATABASE_URI = SQLALCHEMY_DATABASE_URI.replace("postgres://", "postgresql://", 1)
+    
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-
+    
     # Database connection pooling
     SQLALCHEMY_ENGINE_OPTIONS = {
         'pool_size': 10,
@@ -21,25 +24,10 @@ class Config:
         'pool_timeout': 30,     # 30 seconds timeout
     }
 
-    # File Upload
-    MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB max file size
-    UPLOAD_FOLDER = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'static', 'uploads')
-    ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'pdf'}
-
-    # Session Security
-    SESSION_COOKIE_SECURE = os.environ.get('SESSION_COOKIE_SECURE', 'False').lower() == 'true'  # Set to True in production with HTTPS
-    SESSION_COOKIE_HTTPONLY = True
-    SESSION_COOKIE_SAMESITE = 'Lax'
-    PERMANENT_SESSION_LIFETIME = timedelta(hours=1)
-    
-    # Rate Limiting
+    # Flask-Limiter
     RATELIMIT_STORAGE_URI = "memory://"
     
-    # CSRF
-    WTF_CSRF_ENABLED = True  # Should be True for security
-    WTF_CSRF_TIME_LIMIT = 3600  # 1 hour
-
-    # Email Configuration
+    # Flask-Mail
     MAIL_SERVER = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
     MAIL_PORT = int(os.environ.get('MAIL_PORT', 587))
     MAIL_USE_TLS = os.environ.get('MAIL_USE_TLS', 'True').lower() == 'true'
@@ -50,6 +38,21 @@ class Config:
     MAIL_MAX_EMAILS = os.environ.get('MAIL_MAX_EMAILS')
     MAIL_ASCII_ATTACHMENTS = False
 
+    # File Upload
+    MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB max file size
+    UPLOAD_FOLDER = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'static', 'uploads')
+    ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'pdf', 'xlsx', 'xls'}
+
+    # Session Security
+    SESSION_COOKIE_SECURE = os.environ.get('FLASK_ENV') == 'production'
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = 'Lax'
+    PERMANENT_SESSION_LIFETIME = timedelta(hours=1)
+    
+    # CSRF
+    WTF_CSRF_ENABLED = True
+    WTF_CSRF_TIME_LIMIT = 3600  # 1 hour
+
     # Password Reset
     PASSWORD_RESET_SALT = 'password-reset-salt'
     PASSWORD_RESET_EXPIRY = 3600  # 1 hour in seconds
@@ -57,4 +60,3 @@ class Config:
     # Application Settings
     DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
     TESTING = os.environ.get('TESTING', 'False').lower() == 'true'
-    
