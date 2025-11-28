@@ -50,7 +50,7 @@ class Config:
     PERMANENT_SESSION_LIFETIME = timedelta(hours=1)
     
     # CSRF
-    WTF_CSRF_ENABLED = True
+    WTF_CSRF_ENABLED = False
     WTF_CSRF_TIME_LIMIT = 3600  # 1 hour
 
     # Password Reset
