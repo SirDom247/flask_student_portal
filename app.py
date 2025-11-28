@@ -2530,10 +2530,11 @@ def ratelimit_error(error):
     return redirect(request.referrer or url_for('home'))
 
 
-# -------------------- Health Check --------------------
-@app.route("/health")
+
+# --------------------  Full diagnostic for monitoring / AWS or internal tools --------------------
+@app.route("/health/diagnostic")
 def health_check():
-    """Comprehensive health check endpoint"""
+    from datetime import datetime
     health_status = {
         "status": "healthy",
         "timestamp": datetime.utcnow().isoformat(),
@@ -2542,11 +2543,11 @@ def health_check():
     }
     
     try:
-        # Database connectivity check
+        # Database check
         db.session.execute("SELECT 1")
         health_status["database"] = "connected"
-        
-        # Disk space check (optional)
+
+        # Disk space
         try:
             import shutil
             total, used, free = shutil.disk_usage("/")
@@ -2555,10 +2556,10 @@ def health_check():
                 "free_gb": round(free / (1024**3), 2),
                 "used_percent": round((used / total) * 100, 2)
             }
-        except Exception:
+        except:
             health_status["disk_space"] = "check_failed"
-        
-        # Memory usage (optional)
+
+        # Memory usage
         try:
             import psutil
             memory = psutil.virtual_memory()
@@ -2571,9 +2572,9 @@ def health_check():
             health_status["memory"] = "psutil_not_available"
         except Exception:
             health_status["memory"] = "check_failed"
-            
-        return jsonify(health_status)
-        
+
+        return jsonify(health_status), 200
+
     except Exception as e:
         logger.exception("Health check failed")
         health_status.update({
@@ -2582,7 +2583,12 @@ def health_check():
             "error": str(e)
         })
         return jsonify(health_status), 500
+
+# -------------------- # Minimal health check for Render --------------------
     
+@app.route("/health")
+def health():
+    return "OK", 200
 
 # -------------------- Run App --------------------
 if __name__ == "__main__":
