@@ -26,4 +26,5 @@ RUN useradd -m appuser && chown -R appuser:appuser /app
 USER appuser
 
 # Start app: run migrations before Gunicorn
-CMD ["bash", "-lc", "flask db upgrade && gunicorn -w 4 -b 0.0.0.0:${PORT:-5000} 'app:create_app()' -k gthread"]
+CMD ["bash", "-lc", "flask db upgrade && gunicorn -w 4 -b 0.0.0.0:${PORT:-5000} app:app -k gthread"]
+
