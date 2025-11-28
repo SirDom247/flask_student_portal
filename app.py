@@ -102,6 +102,7 @@ mail = Mail(app)
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'xlsx', 'xls'}
 
+
 # WTForms (for validation)
 from wtforms import Form, StringField, FloatField, IntegerField, validators
 
@@ -2611,4 +2612,6 @@ def health():
 
 # -------------------- Run App --------------------
 if __name__ == "__main__":
+    with app.app_context():
+        db.create_all()
     app.run(debug=True)
