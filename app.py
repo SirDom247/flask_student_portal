@@ -29,6 +29,15 @@ from itsdangerous import URLSafeTimedSerializer
 from flask_mail import Mail, Message
 
 
+# Fix for Render's PostgreSQL URL before any database operations
+def fix_database_url():
+    database_url = os.environ.get('DATABASE_URL')
+    if database_url and database_url.startswith("postgres://"):
+        return database_url.replace("postgres://", "postgresql://", 1)
+    return database_url
+
+# Set the fixed database URL
+os.environ['DATABASE_URL'] = fix_database_url() or 'sqlite:///pde_portal.db'
 
 # -------------------- App Initialization --------------------
 app = Flask(__name__)
@@ -75,6 +84,16 @@ else:
     app.config['DEBUG'] = True
     app.config['SESSION_COOKIE_SECURE'] = False
     app.config['WTF_CSRF_ENABLED'] = False
+
+# Fix for Render's PostgreSQL URL
+import os
+database_url = os.environ.get('DATABASE_URL')
+if database_url and database_url.startswith("postgres://"):
+    app.config['SQLALCHEMY_DATABASE_URI'] = database_url.replace("postgres://", "postgresql://", 1)
+
+# Ensure the database URI is set
+if not app.config.get('SQLALCHEMY_DATABASE_URI'):
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///pde_portal.db')
 
 # Log environment info 
 logger.info(f"Application started in {os.getenv('FLASK_ENV', 'unknown')} mode")

@@ -6,9 +6,10 @@ load_dotenv()
 
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-secret-key-change-in-production'
+
     
-    # Database
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///student_portal.db'
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL', 'sqlite:///pde_portal.db')
+    # ... rest of your config
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # Database connection pooling
