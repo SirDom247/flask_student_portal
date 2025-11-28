@@ -1,4 +1,4 @@
-alembic==1.17.1
+alembic
 blinker==1.9.0
 chardet==5.2.0
 click==8.3.0
